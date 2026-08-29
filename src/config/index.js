@@ -7,7 +7,19 @@
  * Secrets are read here but MUST NOT be logged or rendered in views.
  */
 
-require('dotenv').config();
+// Load environment variables. When NODE_ENV is set (e.g. "production"),
+// prefer the env-specific file (.env.production) and then fall back to a plain
+// .env for anything it doesn't define. dotenv does NOT overwrite variables that
+// are already set, so panel-provided env vars (Hostinger) always win.
+const path = require('path');
+
+const rootDir = path.resolve(__dirname, '..', '..');
+if (process.env.NODE_ENV) {
+  require('dotenv').config({
+    path: path.join(rootDir, `.env.${process.env.NODE_ENV}`),
+  });
+}
+require('dotenv').config({ path: path.join(rootDir, '.env') });
 
 /** Parse an integer env var, falling back to a default. */
 function int(value, fallback) {

@@ -61,9 +61,19 @@ function start() {
   return server;
 }
 
-// Only auto-start when run directly (not when required by tests).
-if (require.main === module) {
-  start();
-}
+// Start the HTTP server on load.
+//
+// Hostinger's Node.js hosting runs the app under Phusion Passenger, which
+// *requires* (loads) the entry file rather than executing it directly. That
+// means `require.main === module` is false there, so the old guard prevented
+// listen() from ever being called and Passenger timed out ("did not call
+// listen() within 3 seconds"). We therefore start unconditionally on load.
+//
+// This is safe for tests: the test suite imports `./app` (the Express factory)
+// directly and never requires this file, so starting here does not spin up a
+// server during tests.
+const server = start();
 
-module.exports = start;
+// Export the running server (Passenger looks for the app/server export) while
+// still allowing `require('./server')` to retrieve the instance if needed.
+module.exports = server;
