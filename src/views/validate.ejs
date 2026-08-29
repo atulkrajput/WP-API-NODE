@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <% title = 'Validate — WhatsApp Messaging'; %>
+  <%- include('partials/head', { title: title }) %>
+</head>
+<body>
+  <%- include('partials/navbar', { username: username, active: 'validate' }) %>
+
+  <main class="container py-4">
+    <%- include('partials/flash') %>
+    <h1 class="h3 mb-3">Validate a number</h1>
+
+    <div class="alert alert-info d-flex" role="alert">
+      <span class="badge bg-success align-self-start me-2">Tier A</span>
+      <div>
+        <strong>Format check.</strong> This confirms a number is
+        well-formed for its country. It does <strong>not</strong> confirm the
+        number is on WhatsApp or reachable. Deliverability is a separate
+        <span class="badge bg-primary">Tier B</span> check that consumes a real send.
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <form id="validate-form" class="card">
+          <div class="card-body">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+            <div class="mb-3">
+              <label for="number" class="form-label">Phone number</label>
+              <input
+                type="text"
+                class="form-control"
+                id="number"
+                name="number"
+                placeholder="+1 555 123 4567"
+                autocomplete="off"
+                required
+                autofocus
+              />
+              <div class="form-text">Include the country code (+…) or set a default country below.</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="defaultCountry" class="form-label">Default country (optional)</label>
+              <input
+                type="text"
+                class="form-control"
+                id="defaultCountry"
+                name="defaultCountry"
+                placeholder="US"
+                maxlength="2"
+                autocomplete="off"
+              />
+              <div class="form-text">ISO 3166 alpha-2 code, e.g. US, GB, IN. Used for national-format numbers.</div>
+            </div>
+
+            <button type="submit" class="btn btn-success">Check format (Tier A)</button>
+          </div>
+        </form>
+
+        <div class="card mt-4 border-warning">
+          <div class="card-body">
+            <h2 class="h5 card-title">
+              <span class="badge bg-primary">Tier B</span> Deliverability check
+            </h2>
+
+            <div class="alert alert-warning" role="alert">
+              <strong>This consumes a real message send.</strong> A Tier B check
+              attempts an actual send of the probe template to the number above.
+              It <strong>may incur cost and can affect your WhatsApp quality
+              rating</strong>. Use it sparingly. Final delivery status
+              (delivered / read / failed) arrives later via webhook.
+            </div>
+
+            <button type="button" id="deliverability-btn" class="btn btn-warning">
+              Run deliverability check (uses a send)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div id="result" class="d-none">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="h5 card-title">Result</h2>
+              <div id="result-badge" class="mb-2"></div>
+              <dl class="row mb-0 small">
+                <dt class="col-4">E.164</dt><dd class="col-8" id="r-e164">—</dd>
+                <dt class="col-4">Country</dt><dd class="col-8" id="r-country">—</dd>
+                <dt class="col-4">Type</dt><dd class="col-8" id="r-type">—</dd>
+                <dt class="col-4">Reason</dt><dd class="col-8" id="r-reason">—</dd>
+                <dt class="col-4">WAMID</dt><dd class="col-8" id="r-wamid">—</dd>
+              </dl>
+              <p class="text-muted small mt-2 mb-0" id="r-disclaimer"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var form = document.getElementById('validate-form');
+      var resultBox = document.getElementById('result');
+      var badge = document.getElementById('result-badge');
+
+      var deliverBtn = document.getElementById('deliverability-btn');
+
+      function renderResult(data) {
+        resultBox.classList.remove('d-none');
+        document.getElementById('r-e164').textContent = data.e164 || '—';
+        document.getElementById('r-country').textContent = data.country || '—';
+        document.getElementById('r-type').textContent = data.type || '—';
+        document.getElementById('r-wamid').textContent = data.wamid || '—';
+        document.getElementById('r-disclaimer').textContent = data.disclaimer || '';
+
+        if (data.tier === 'B') {
+          if (data.status === 'accepted') {
+            document.getElementById('r-reason').textContent = '—';
+            badge.innerHTML =
+              '<span class="badge bg-primary">Tier B — ' +
+              (data.label || 'Accepted for delivery') + '</span>';
+          } else if (data.status === 'failed') {
+            var err = data.error || {};
+            document.getElementById('r-reason').textContent =
+              (err.title || '') + (err.detail ? ' — ' + err.detail : '') || '—';
+            badge.innerHTML =
+              '<span class="badge bg-danger">Tier B — Send rejected' +
+              (err.code ? ' (' + err.code + ')' : '') + '</span>';
+          } else {
+            // Tier A short-circuit inside a deliverability request.
+            document.getElementById('r-reason').textContent = data.reason || '—';
+            badge.innerHTML =
+              '<span class="badge bg-danger">Tier B — Invalid format (no send)</span>';
+          }
+          return;
+        }
+
+        // Tier A result.
+        document.getElementById('r-reason').textContent = data.reason || '—';
+        if (data.valid) {
+          badge.innerHTML =
+            '<span class="badge bg-success">Tier A — ' +
+            (data.label || 'Format valid') + '</span>';
+        } else {
+          badge.innerHTML =
+            '<span class="badge bg-danger">Tier A — Invalid format</span>';
+        }
+      }
+
+      function postJson(url) {
+        var payload = {
+          number: form.number.value,
+          defaultCountry: form.defaultCountry.value,
+          _csrf: form._csrf.value,
+        };
+        return fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function (res) { return res.json(); })
+          .then(renderResult)
+          .catch(function () {
+            resultBox.classList.remove('d-none');
+            badge.innerHTML =
+              '<span class="badge bg-warning text-dark">Request failed</span>';
+          });
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        postJson('/validate/single');
+      });
+
+      deliverBtn.addEventListener('click', function () {
+        if (!form.number.value.trim()) {
+          form.number.focus();
+          return;
+        }
+        var ok = window.confirm(
+          'This performs a REAL WhatsApp send (the probe template) to ' +
+          form.number.value +
+          '. It consumes a message, may incur cost, and can affect your ' +
+          'quality rating. Continue?'
+        );
+        if (!ok) return;
+        postJson('/validate/deliverability');
+      });
+    })();
+  </script>
+</body>
+</html>

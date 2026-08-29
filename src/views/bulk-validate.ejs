@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <% title = 'Bulk validate — WhatsApp Messaging'; %>
+  <%- include('partials/head', { title: title }) %>
+</head>
+<body>
+  <%- include('partials/navbar', { username: username, active: 'bulk-validate' }) %>
+
+  <main class="container py-4">
+    <%- include('partials/flash') %>
+    <h1 class="h3 mb-3">Bulk number validation (CSV)</h1>
+
+    <div class="alert alert-info d-flex" role="alert">
+      <span class="badge bg-success align-self-start me-2">Tier A</span>
+      <div>
+        <strong>Format check.</strong> Every row is checked for a
+        well-formed number for its country. This does <strong>not</strong> confirm
+        the numbers are on WhatsApp or reachable. Deliverability
+        (<span class="badge bg-primary">Tier B</span>) for a
+        list is only available through the bulk <em>send</em> flow.
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-lg-5">
+        <form id="bulk-form" class="card" enctype="multipart/form-data">
+          <div class="card-body">
+            <!-- The CSRF token is sent as the x-csrf-token HEADER (not a form
+                 field) because multer parses the multipart body after the CSRF
+                 middleware has already run. -->
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+            <div class="mb-3">
+              <label for="file" class="form-label">CSV file</label>
+              <input type="file" class="form-control" id="file" name="file" accept=".csv" required />
+              <div class="form-text">A header row is required. Max size is enforced by the server.</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="phoneColumn" class="form-label">Phone column</label>
+              <input type="text" class="form-control" id="phoneColumn" name="phoneColumn" value="phone" autocomplete="off" />
+              <div class="form-text">Header name of the column holding the number (default <code>phone</code>).</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="countryColumn" class="form-label">Country column (optional)</label>
+              <input type="text" class="form-control" id="countryColumn" name="countryColumn" placeholder="country" autocomplete="off" />
+            </div>
+
+            <div class="mb-3">
+              <label for="defaultCountry" class="form-label">Default country (optional)</label>
+              <input type="text" class="form-control" id="defaultCountry" name="defaultCountry" placeholder="US" maxlength="2" autocomplete="off" />
+              <div class="form-text">ISO 3166 alpha-2 fallback for national-format numbers.</div>
+            </div>
+
+            <button type="submit" class="btn btn-success">Validate CSV (Tier A)</button>
+            <div id="upload-error" class="text-danger small mt-2"></div>
+          </div>
+        </form>
+      </div>
+
+      <div class="col-lg-7">
+        <div id="report-box" class="<%= typeof report === 'undefined' ? 'd-none' : '' %>">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="h5 card-title">Report</h2>
+              <div id="summary" class="mb-3">
+                <% if (typeof report !== 'undefined') { %>
+                  <span class="badge bg-secondary">Total <%= report.summary.total %></span>
+                  <span class="badge bg-success">Valid <%= report.summary.valid %></span>
+                  <span class="badge bg-danger">Invalid <%= report.summary.invalid %></span>
+                  <span class="badge bg-primary">Kept <%= report.summary.kept %></span>
+                  <span class="badge bg-warning text-dark">Duplicate <%= report.summary.duplicate %></span>
+                  <div class="small text-muted mt-1">Batch id: <code><%= report.batchId %></code></div>
+                <% } %>
+              </div>
+              <div class="table-responsive" style="max-height: 480px;">
+                <table class="table table-sm table-striped small">
+                  <thead>
+                    <tr>
+                      <th>#</th><th>Input</th><th>E.164</th><th>Country</th>
+                      <th>Valid?</th><th>Dup?</th><th>Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody id="report-rows">
+                    <% if (typeof report !== 'undefined') { %>
+                      <% report.rows.forEach(function (r) { %>
+                        <tr>
+                          <td><%= r.row %></td>
+                          <td><%= r.input %></td>
+                          <td><%= r.e164 || '—' %></td>
+                          <td><%= r.country || '—' %></td>
+                          <td><%= r.valid ? 'yes' : 'no' %></td>
+                          <td><%= r.duplicate ? 'yes' : '—' %></td>
+                          <td><%= r.reason || '' %></td>
+                        </tr>
+                      <% }); %>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var form = document.getElementById('bulk-form');
+      var reportBox = document.getElementById('report-box');
+      var summary = document.getElementById('summary');
+      var rowsBody = document.getElementById('report-rows');
+      var errorBox = document.getElementById('upload-error');
+
+      function badge(cls, label, n) {
+        return '<span class="badge ' + cls + '">' + label + ' ' + n + '</span> ';
+      }
+
+      function render(data) {
+        errorBox.textContent = '';
+        reportBox.classList.remove('d-none');
+        var s = data.summary;
+        summary.innerHTML =
+          badge('bg-secondary', 'Total', s.total) +
+          badge('bg-success', 'Valid', s.valid) +
+          badge('bg-danger', 'Invalid', s.invalid) +
+          badge('bg-primary', 'Kept', s.kept) +
+          badge('bg-warning text-dark', 'Duplicate', s.duplicate) +
+          '<div class="small text-muted mt-1">Batch id: <code>' + data.batchId + '</code></div>';
+        rowsBody.innerHTML = data.rows.map(function (r) {
+          return '<tr><td>' + r.row + '</td><td>' + (r.input || '') + '</td><td>' +
+            (r.e164 || '—') + '</td><td>' + (r.country || '—') + '</td><td>' +
+            (r.valid ? 'yes' : 'no') + '</td><td>' + (r.duplicate ? 'yes' : '—') +
+            '</td><td>' + (r.reason || '') + '</td></tr>';
+        }).join('');
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        errorBox.textContent = '';
+        var fd = new FormData(form);
+        fd.append('format', 'json');
+        fetch('/validate/bulk', {
+          method: 'POST',
+          // CSRF token via header (multipart body is parsed after CSRF check).
+          headers: { 'x-csrf-token': form._csrf.value, 'Accept': 'application/json' },
+          body: fd,
+        })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (data && data.ok) { render(data); }
+            else { errorBox.textContent = (data && data.message) || 'Upload failed.'; }
+          })
+          .catch(function () { errorBox.textContent = 'Upload failed.'; });
+      });
+    })();
+  </script>
+</body>
+</html>

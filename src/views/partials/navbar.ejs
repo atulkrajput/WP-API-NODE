@@ -1,0 +1,48 @@
+<%
+  // `active` is the current page key so the matching nav link is highlighted.
+  // Optional: defaults to '' when a view does not pass it.
+  var active = (typeof active !== 'undefined' && active) ? active : '';
+%>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+  <div class="container">
+    <a class="navbar-brand" href="/">WhatsApp Messaging</a>
+    <% if (typeof username !== 'undefined' && username) { %>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#mainNav" aria-controls="mainNav"
+              aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link <%= active === 'dashboard' ? 'active fw-semibold' : '' %>"
+               <%= active === 'dashboard' ? 'aria-current="page"' : '' %> href="/">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link <%= active === 'validate' ? 'active fw-semibold' : '' %>"
+               <%= active === 'validate' ? 'aria-current="page"' : '' %> href="/validate">Validate</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link <%= active === 'bulk-validate' ? 'active fw-semibold' : '' %>"
+               <%= active === 'bulk-validate' ? 'aria-current="page"' : '' %> href="/validate/bulk">Bulk validate</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link <%= active === 'messages' ? 'active fw-semibold' : '' %>"
+               <%= active === 'messages' ? 'aria-current="page"' : '' %> href="/messages">Send message</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link <%= active === 'bulk' ? 'active fw-semibold' : '' %>"
+               <%= active === 'bulk' ? 'aria-current="page"' : '' %> href="/bulk">Bulk send</a>
+          </li>
+        </ul>
+        <div class="d-flex align-items-center">
+          <span class="navbar-text text-white me-3">Signed in as <strong><%= username %></strong></span>
+          <form action="/logout" method="post" class="m-0">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
+          </form>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</nav>

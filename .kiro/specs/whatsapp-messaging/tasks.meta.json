@@ -1,0 +1,260 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Project scaffold & configuration": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965180790
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965191623
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787966095464
+      }
+    ],
+    "2. MySQL connection, migrations & seed": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965181185
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787966101075
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787966917558
+      }
+    ],
+    "3. Authentication & session": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965181495
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787966922457
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787967668162
+      }
+    ],
+    "4. PhoneService + single format validation (Tier A)": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965181721
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787967672886
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787968789384
+      }
+    ],
+    "5. WhatsAppService (Meta Cloud API wrapper)": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965181898
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787968794015
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787968976215
+      }
+    ],
+    "6. Single message send": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965182052
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787968981433
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787969373192
+      }
+    ],
+    "7. Deliverability check (Tier B)": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965182256
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787969377950
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787969758253
+      }
+    ],
+    "8. Webhook verification + status handler": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965182468
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787969763569
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787970355086
+      }
+    ],
+    "9. Bulk number validation (CSV, Tier A)": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965182650
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787970360327
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787971195683
+      }
+    ],
+    "10. Bulk send job creation (CSV → queue)": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965182834
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787971202941
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787971772765
+      }
+    ],
+    "11. Background worker + rate limiting + retries": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965182987
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787971777891
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787973020159
+      }
+    ],
+    "12. Bulk job history & progress UI": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965183162
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787973027799
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787973604373
+      }
+    ],
+    "13. Dashboard views polish + wiring": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965183396
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787973610395
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787974713218
+      }
+    ],
+    "14. Hardening & deploy prep (Hostinger)": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965183586
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787974718420
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787975822847
+      }
+    ],
+    "15. (Optional stretch) Retry-failed & BullMQ path": [
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787965183718
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787975835187
+      },
+      {
+        "executionId": "cbdee4d3-7483-4be5-97cd-964ed15299e0",
+        "chatSessionId": "sess_99cd09e5-0861-4591-b441-b854c84c0fb2",
+        "timestamp": 1787976833542
+      }
+    ]
+  }
+}

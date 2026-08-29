@@ -1,0 +1,55 @@
+{
+  "name": "wp-api-node",
+  "version": "1.0.0",
+  "description": "WhatsApp Number Validation & Messaging MVP (Express + MySQL, Meta Cloud API)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "migrate": "node src/db/migrate.js",
+    "seed": "node src/db/seed.js",
+    "test": "jest --runInBand"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/test/**/*.test.js"
+    ],
+    "forceExit": true,
+    "clearMocks": true
+  },
+  "keywords": [
+    "whatsapp",
+    "meta",
+    "cloud-api",
+    "express",
+    "mysql"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1",
+    "helmet": "^8.0.0",
+    "libphonenumber-js": "^1.11.12",
+    "morgan": "^1.10.0",
+    "multer": "^2.3.0",
+    "mysql2": "^3.11.4",
+    "node-cron": "^3.0.3"
+  },
+  "optionalDependencies": {
+    "bullmq": "^5.81.4",
+    "ioredis": "^5.11.1"
+  },
+  "devDependencies": {
+    "jest": "^30.5.0",
+    "nodemon": "^3.1.7",
+    "supertest": "^7.2.2"
+  }
+}

@@ -1,0 +1,18 @@
+<%
+  // Session-backed flash messages (Task 13). `flash` is published on
+  // res.locals by the flash middleware and cleared after this render, so each
+  // message shows exactly once. Each entry is { type, message } where type is a
+  // Bootstrap contextual suffix. Messages are plain strings — never stack
+  // traces (NFR-2).
+  var flashes = (typeof flash !== 'undefined' && Array.isArray(flash)) ? flash : [];
+%>
+<% if (flashes.length) { %>
+  <div class="flash-messages" data-testid="flash">
+    <% flashes.forEach(function (f) { %>
+      <div class="alert alert-<%= f.type %> alert-dismissible fade show" role="alert">
+        <%= f.message %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% }); %>
+  </div>
+<% } %>

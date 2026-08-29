@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <% title = 'Send message — WhatsApp Messaging'; %>
+  <%- include('partials/head', { title: title }) %>
+</head>
+<body>
+  <%- include('partials/navbar', { username: username, active: 'messages' }) %>
+
+  <main class="container py-4">
+    <%- include('partials/flash') %>
+    <h1 class="h3 mb-3">Send a message</h1>
+
+    <div class="alert alert-info" role="alert">
+      <strong>Templates are the default.</strong> Outside a 24-hour customer
+      session, only pre-approved <em>templates</em> can be delivered. Free-text
+      is <strong>only deliverable inside a 24-hour session window</strong>.
+      The recipient's format is checked (<span class="badge bg-success">Tier A</span>)
+      before we call Meta.
+    </div>
+
+    <div class="row">
+      <div class="col-md-7">
+        <form id="send-form" class="card">
+          <div class="card-body">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+            <!-- Mode toggle: template (default) vs free text (Req 5.1 / 5.2) -->
+            <div class="mb-3">
+              <label class="form-label d-block">Mode</label>
+              <div class="btn-group" role="group" aria-label="Message mode">
+                <input type="radio" class="btn-check" name="mode" id="mode-template"
+                       value="template" autocomplete="off" checked />
+                <label class="btn btn-outline-success" for="mode-template">Template</label>
+
+                <input type="radio" class="btn-check" name="mode" id="mode-text"
+                       value="text" autocomplete="off" />
+                <label class="btn btn-outline-secondary" for="mode-text">Free text</label>
+              </div>
+              <div class="form-text" id="mode-hint">
+                Template mode: pick a name, language, and fill variables.
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="to" class="form-label">Recipient phone number</label>
+              <input type="text" class="form-control" id="to" name="to"
+                     placeholder="+1 555 123 4567" autocomplete="off" required autofocus />
+              <div class="form-text">Include the country code (+…) or set a default country.</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="defaultCountry" class="form-label">Default country (optional)</label>
+              <input type="text" class="form-control" id="defaultCountry" name="defaultCountry"
+                     placeholder="US" maxlength="2" autocomplete="off" />
+              <div class="form-text">ISO 3166 alpha-2, e.g. US, GB, IN.</div>
+            </div>
+
+            <!-- Template fields -->
+            <div id="template-fields">
+              <div class="mb-3">
+                <label for="templateName" class="form-label">Template name</label>
+                <input type="text" class="form-control" id="templateName" name="templateName"
+                       placeholder="hello_world" autocomplete="off" />
+              </div>
+
+              <div class="mb-3">
+                <label for="language" class="form-label">Language</label>
+                <input type="text" class="form-control" id="language" name="language"
+                       value="<%= typeof defaultLang !== 'undefined' ? defaultLang : 'en_US' %>"
+                       placeholder="en_US" autocomplete="off" />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label d-block">Variables (body parameters, in order)</label>
+                <div id="variables-list"></div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="add-variable">
+                  + Add variable
+                </button>
+                <div class="form-text">Each value maps to a positional template body variable.</div>
+              </div>
+            </div>
+
+            <!-- Free-text fields (hidden by default) -->
+            <div id="text-fields" class="d-none">
+              <div class="alert alert-warning py-2" role="alert">
+                Free text is <strong>only deliverable inside a 24-hour session window</strong>.
+              </div>
+              <div class="mb-3">
+                <label for="body" class="form-label">Message text</label>
+                <textarea class="form-control" id="body" name="body" rows="3"
+                          placeholder="Hi there"></textarea>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-success">Send</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="col-md-5">
+        <div id="result" class="d-none">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="h5 card-title">Result</h2>
+              <div id="result-badge" class="mb-2"></div>
+              <dl class="row mb-0 small">
+                <dt class="col-4">Message ID</dt><dd class="col-8" id="r-id">—</dd>
+                <dt class="col-4">wamid</dt><dd class="col-8" id="r-wamid">—</dd>
+                <dt class="col-4">Status</dt><dd class="col-8" id="r-status">—</dd>
+                <dt class="col-4">Recipient</dt><dd class="col-8" id="r-to">—</dd>
+                <dt class="col-4">Error</dt><dd class="col-8" id="r-error">—</dd>
+              </dl>
+              <p class="text-muted small mt-2 mb-0">
+                Status updates as delivery webhooks arrive (polling every few seconds).
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var form = document.getElementById('send-form');
+      var templateFields = document.getElementById('template-fields');
+      var textFields = document.getElementById('text-fields');
+      var modeHint = document.getElementById('mode-hint');
+      var variablesList = document.getElementById('variables-list');
+      var resultBox = document.getElementById('result');
+      var badge = document.getElementById('result-badge');
+      var pollTimer = null;
+
+      function currentMode() {
+        var checked = form.querySelector('input[name="mode"]:checked');
+        return checked ? checked.value : 'template';
+      }
+
+      function applyMode() {
+        if (currentMode() === 'text') {
+          templateFields.classList.add('d-none');
+          textFields.classList.remove('d-none');
+          modeHint.textContent =
+            'Free-text mode: only deliverable inside a 24-hour session window.';
+        } else {
+          textFields.classList.add('d-none');
+          templateFields.classList.remove('d-none');
+          modeHint.textContent =
+            'Template mode: pick a name, language, and fill variables.';
+        }
+      }
+
+      form.querySelectorAll('input[name="mode"]').forEach(function (el) {
+        el.addEventListener('change', applyMode);
+      });
+
+      document.getElementById('add-variable').addEventListener('click', function () {
+        var wrap = document.createElement('div');
+        wrap.className = 'input-group input-group-sm mb-2';
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control';
+        input.name = 'variables[]';
+        input.placeholder = 'variable value';
+        var remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn btn-outline-danger';
+        remove.textContent = '×';
+        remove.addEventListener('click', function () { wrap.remove(); });
+        wrap.appendChild(input);
+        wrap.appendChild(remove);
+        variablesList.appendChild(wrap);
+      });
+
+      function collectVariables() {
+        var out = [];
+        variablesList.querySelectorAll('input[name="variables[]"]').forEach(function (i) {
+          out.push(i.value);
+        });
+        return out;
+      }
+
+      function renderResult(data, httpOk) {
+        resultBox.classList.remove('d-none');
+        var status = data.status || (data.ok ? 'accepted' : 'failed');
+        if (data.ok && (status === 'accepted' || httpOk)) {
+          badge.innerHTML = '<span class="badge bg-success">Accepted</span>';
+        } else if (status === 'failed') {
+          badge.innerHTML = '<span class="badge bg-danger">Failed</span>';
+        } else if (data.stage === 'validation') {
+          badge.innerHTML = '<span class="badge bg-warning text-dark">Tier A — invalid</span>';
+        } else {
+          badge.innerHTML = '<span class="badge bg-secondary">' + status + '</span>';
+        }
+        document.getElementById('r-id').textContent = data.id || '—';
+        document.getElementById('r-wamid').textContent = data.wamid || '—';
+        document.getElementById('r-status').textContent = status;
+        document.getElementById('r-to').textContent = data.to || '—';
+        var errText = '—';
+        if (data.error && (data.error.title || data.error.detail)) {
+          errText = (data.error.code ? '[' + data.error.code + '] ' : '') +
+            (data.error.title || '') +
+            (data.error.detail ? ' — ' + data.error.detail : '');
+        } else if (data.reason) {
+          errText = data.reason;
+        }
+        document.getElementById('r-error').textContent = errText;
+      }
+
+      function pollStatus(url) {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(function () {
+          fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (s) {
+              if (!s.ok) return;
+              document.getElementById('r-status').textContent = s.status;
+              document.getElementById('r-wamid').textContent = s.wamid || '—';
+              if (s.status === 'delivered' || s.status === 'read' ||
+                  s.status === 'failed') {
+                clearInterval(pollTimer);
+              }
+            })
+            .catch(function () {});
+        }, 4000);
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var payload = {
+          mode: currentMode(),
+          to: form.to.value,
+          defaultCountry: form.defaultCountry.value,
+          templateName: form.templateName ? form.templateName.value : '',
+          language: form.language ? form.language.value : '',
+          variables: collectVariables(),
+          body: form.body ? form.body.value : '',
+          _csrf: form._csrf.value,
+        };
+
+        fetch('/messages/single', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function (res) {
+            return res.json().then(function (data) {
+              return { data: data, ok: res.ok };
+            });
+          })
+          .then(function (r) {
+            renderResult(r.data, r.ok);
+            if (r.data.ok && r.data.statusUrl) {
+              pollStatus(r.data.statusUrl);
+            }
+          })
+          .catch(function () {
+            resultBox.classList.remove('d-none');
+            badge.innerHTML = '<span class="badge bg-warning text-dark">Request failed</span>';
+          });
+      });
+
+      applyMode();
+    })();
+  </script>
+</body>
+</html>

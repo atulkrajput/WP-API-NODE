@@ -141,3 +141,20 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# --- Project-specific ---
+
+# OS / editor artifacts
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Local secrets fallback (in addition to .env rules above)
+*.pem
+*.key
+
+# Temp / upload scratch (multer uses in-memory storage, but guard anyway)
+tmp/
+uploads/

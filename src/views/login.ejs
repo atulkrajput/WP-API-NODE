@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <% title = 'Log in — WhatsApp Messaging'; %>
+  <%- include('partials/head', { title: title }) %>
+</head>
+<body class="bg-light">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-sm-8 col-md-6 col-lg-4">
+        <div class="card shadow-sm mt-5">
+          <div class="card-body">
+            <h1 class="h4 mb-3 text-center">Admin sign in</h1>
+
+            <%- include('partials/flash') %>
+
+            <% if (error) { %>
+              <div class="alert alert-danger" role="alert"><%= error %></div>
+            <% } %>
+
+            <form action="/login" method="post" novalidate>
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+              <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="username"
+                  name="username"
+                  value="<%= username %>"
+                  autocomplete="username"
+                  required
+                  autofocus
+                />
+              </div>
+
+              <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="password"
+                  name="password"
+                  autocomplete="current-password"
+                  required
+                />
+              </div>
+
+              <button type="submit" class="btn btn-success w-100">Log in</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

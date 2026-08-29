@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <% title = 'Dashboard — WhatsApp Messaging'; %>
+  <%- include('partials/head', { title: title }) %>
+</head>
+<body>
+  <%- include('partials/navbar', { username: username, active: 'dashboard' }) %>
+
+  <main class="container py-4">
+    <%- include('partials/flash') %>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h3 mb-0">Dashboard</h1>
+      <span class="text-muted small">Signed in<%= username ? ' as ' + username : '' %></span>
+    </div>
+
+    <% if (typeof summaryErrors !== 'undefined' && summaryErrors && summaryErrors.length) { %>
+      <div class="alert alert-warning" role="alert">
+        Some summary panels couldn't be loaded right now (<%= summaryErrors.join(', ') %>).
+        The rest of the dashboard is still available.
+      </div>
+    <% } %>
+
+    <!-- Validation-tier legend: makes the Tier A vs Tier B distinction prominent
+         and unmistakable across the app (Requirements 2 & 3). -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h6 text-uppercase text-muted mb-2">How validation works</h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="d-flex">
+              <span class="badge bg-success align-self-start me-2">Tier A</span>
+              <div class="small">
+                <strong>Format check</strong> via libphonenumber — free and instant.
+                Confirms a number is well-formed. It does <strong>not</strong> confirm
+                the number is on WhatsApp or reachable.
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="d-flex">
+              <span class="badge bg-primary align-self-start me-2">Tier B</span>
+              <div class="small">
+                <strong>Deliverability check</strong> — attempts a real send via the
+                Cloud API. <span class="text-danger">Consumes a message</span> and final
+                status arrives asynchronously via webhook.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template-vs-free-text guidance, prominent on the landing page (Req 5). -->
+    <div class="alert alert-info" role="alert">
+      <strong>Templates are the default send path.</strong> Outside a 24-hour customer
+      session window, <strong>only pre-approved templates</strong> can be delivered.
+      Free-text messages are <strong>only deliverable inside an open 24-hour session
+      window</strong>. Every send is format-checked (Tier A) before we call Meta.
+    </div>
+
+    <!-- Quick actions -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3 col-sm-6">
+        <a href="/validate" class="text-decoration-none">
+          <div class="card h-100">
+            <div class="card-body">
+              <h2 class="h6 card-title mb-1">Validate a number</h2>
+              <p class="card-text text-muted small mb-0">Tier A format &amp; Tier B deliverability.</p>
+            </div>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <a href="/validate/bulk" class="text-decoration-none">
+          <div class="card h-100">
+            <div class="card-body">
+              <h2 class="h6 card-title mb-1">Bulk validate (CSV)</h2>
+              <p class="card-text text-muted small mb-0">Tier A report for a list.</p>
+            </div>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <a href="/messages" class="text-decoration-none">
+          <div class="card h-100">
+            <div class="card-body">
+              <h2 class="h6 card-title mb-1">Send a message</h2>
+              <p class="card-text text-muted small mb-0">Single template or free text.</p>
+            </div>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <a href="/bulk" class="text-decoration-none">
+          <div class="card h-100">
+            <div class="card-body">
+              <h2 class="h6 card-title mb-1">Bulk send (CSV)</h2>
+              <p class="card-text text-muted small mb-0">Queued, rate-limited sends.</p>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- Recent validations (Req 2, 3) -->
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Recent validations</span>
+            <a href="/validate" class="small">Validate →</a>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped small align-middle mb-0">
+              <thead>
+                <tr><th>Input</th><th>E.164</th><th>Tier</th><th>Result</th><th>When</th></tr>
+              </thead>
+              <tbody>
+                <% var validations = (typeof recentValidations !== 'undefined' && recentValidations) ? recentValidations : []; %>
+                <% if (validations.length) { %>
+                  <% validations.forEach(function (v) { %>
+                    <%
+                      var isTierB = v.check_type === 'deliverability';
+                      var tierLabel = isTierB ? 'Tier B' : 'Tier A';
+                      var tierClass = isTierB ? 'bg-primary' : 'bg-success';
+                      var resultClass = 'bg-secondary';
+                      if (v.status === 'valid' || v.status === 'accepted') resultClass = 'bg-success';
+                      else if (v.status === 'invalid' || v.status === 'failed') resultClass = 'bg-danger';
+                      else if (v.status === 'pending') resultClass = 'bg-warning text-dark';
+                    %>
+                    <tr>
+                      <td class="text-truncate" style="max-width: 120px;"><%= v.raw_input %></td>
+                      <td><%= v.e164 || '—' %></td>
+                      <td><span class="badge <%= tierClass %>"><%= tierLabel %></span></td>
+                      <td><span class="badge <%= resultClass %>"><%= v.status %></span></td>
+                      <td class="text-muted"><%= v.created_at %></td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr><td colspan="5" class="text-muted">No validations yet.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent messages (Req 5) -->
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Recent messages</span>
+            <a href="/messages" class="small">Send →</a>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped small align-middle mb-0">
+              <thead>
+                <tr><th>Recipient</th><th>Type</th><th>Status</th><th>When</th></tr>
+              </thead>
+              <tbody>
+                <% var msgs = (typeof recentMessages !== 'undefined' && recentMessages) ? recentMessages : []; %>
+                <% if (msgs.length) { %>
+                  <% msgs.forEach(function (m) { %>
+                    <%
+                      var msgClass = 'bg-secondary';
+                      if (m.status === 'read' || m.status === 'delivered') msgClass = 'bg-success';
+                      else if (m.status === 'sent' || m.status === 'accepted') msgClass = 'bg-info text-dark';
+                      else if (m.status === 'failed') msgClass = 'bg-danger';
+                    %>
+                    <tr>
+                      <td><%= m.to_e164 %></td>
+                      <td>
+                        <span class="badge <%= m.msg_type === 'text' ? 'bg-warning text-dark' : 'bg-success' %>">
+                          <%= m.msg_type === 'text' ? 'Free text' : 'Template' %>
+                        </span>
+                      </td>
+                      <td><span class="badge <%= msgClass %>"><%= m.status %></span></td>
+                      <td class="text-muted"><%= m.created_at %></td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr><td colspan="4" class="text-muted">No messages yet.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active bulk jobs (Req 6, 8) -->
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Active bulk jobs</span>
+            <a href="/bulk" class="small">All jobs →</a>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped small align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>#</th><th>Name</th><th>Template</th><th>Status</th>
+                  <th style="min-width: 160px;">Progress</th><th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% var jobs = (typeof activeJobs !== 'undefined' && activeJobs) ? activeJobs : []; %>
+                <% if (jobs.length) { %>
+                  <% jobs.forEach(function (j) { %>
+                    <%
+                      var doneCount = (j.sent_count || 0) + (j.failed_count || 0) + (j.skipped_count || 0);
+                      var pct = j.total_count > 0 ? Math.round((doneCount / j.total_count) * 100) : 0;
+                    %>
+                    <tr>
+                      <td><a href="/bulk/<%= j.id %>">#<%= j.id %></a></td>
+                      <td><%= j.name || '—' %></td>
+                      <td><%= j.template_name %> (<%= j.language %>)</td>
+                      <td><span class="badge bg-primary"><%= j.status %></span></td>
+                      <td>
+                        <div class="progress" role="progressbar"
+                             aria-label="Job #<%= j.id %> progress"
+                             aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= pct %>"
+                             style="height: 1rem;">
+                          <div class="progress-bar" style="width: <%= pct %>%;"><%= pct %>%</div>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.75rem;">
+                          <%= j.sent_count %>/<%= j.total_count %> sent
+                        </div>
+                      </td>
+                      <td class="text-muted"><%= j.created_at %></td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr><td colspan="6" class="text-muted">No active jobs.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

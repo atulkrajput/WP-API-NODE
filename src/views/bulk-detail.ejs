@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <% title = 'Bulk job — WhatsApp Messaging'; %>
+  <%- include('partials/head', { title: title }) %>
+</head>
+<body>
+  <%- include('partials/navbar', { username: username, active: 'bulk' }) %>
+
+  <main class="container py-4">
+    <%- include('partials/flash') %>
+    <% if (!job) { %>
+      <div class="alert alert-danger" role="alert">
+        <strong>Job not found.</strong> No bulk job matches that id.
+      </div>
+      <a href="/bulk" class="btn btn-outline-secondary btn-sm">&larr; Back to jobs</a>
+    <% } else { %>
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <h1 class="h3 mb-1">
+            Bulk job <span class="text-muted">#<%= job.id %></span>
+            <% if (job.name) { %><small class="text-muted">— <%= job.name %></small><% } %>
+          </h1>
+          <div class="text-muted small">
+            Template <code><%= job.template_name %></code> (<%= job.language %>)
+            · created <%= job.created_at %>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <!-- Retry failed (Requirement 8.5). Shown only when the job has failed
+               items. Plain state-changing POST → normal CSRF _csrf field (not the
+               multipart header workaround). -->
+          <% if ((Number(job.failed_count) || 0) > 0) { %>
+            <form method="post" action="/bulk/<%= job.id %>/retry-failed" class="m-0">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <button type="submit" class="btn btn-warning btn-sm">
+                Retry failed (<%= job.failed_count %>)
+              </button>
+            </form>
+          <% } %>
+          <a href="/bulk" class="btn btn-outline-secondary btn-sm">&larr; Back to jobs</a>
+        </div>
+      </div>
+
+      <!-- Live progress (Requirement 8.3). Seeded server-side, then updated by
+           the poller below hitting /bulk/:id/progress. -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h5 card-title mb-0">Progress</h2>
+            <span>
+              <span class="badge bg-secondary" id="job-status"><%= progress.status %></span>
+            </span>
+          </div>
+
+          <div class="progress" role="progressbar" aria-label="Job progress"
+               aria-valuemin="0" aria-valuemax="100"
+               aria-valuenow="<%= progress.percent %>" style="height: 1.5rem;">
+            <div id="progress-bar"
+                 class="progress-bar progress-bar-striped<%= progress.finished ? '' : ' progress-bar-animated' %>"
+                 style="width: <%= progress.percent %>%;">
+              <span id="progress-pct"><%= progress.percent %>%</span>
+            </div>
+          </div>
+
+          <div class="mt-2 small">
+            <strong><span id="progress-xofy"><%= progress.done %> of <%= progress.total %></span></strong>
+            processed
+            &nbsp;·&nbsp;
+            <span class="badge bg-success">Sent <span id="c-sent"><%= progress.sent %></span></span>
+            <span class="badge bg-danger">Failed <span id="c-failed"><%= progress.failed %></span></span>
+            <span class="badge bg-warning text-dark">Skipped <span id="c-skipped"><%= progress.skipped %></span></span>
+            <span class="badge bg-info text-dark">Processing <span id="c-processing"><%= progress.processing %></span></span>
+            <span class="badge bg-secondary">Pending <span id="c-pending"><%= progress.pending %></span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status filter (Requirement 8.4). Links carry the ?status query param;
+           listByJob filters server-side. -->
+      <div class="mb-3">
+        <div class="btn-group btn-group-sm" role="group" aria-label="Filter items by status">
+          <% var filters = [
+               { key: '', label: 'All' },
+               { key: 'sent', label: 'Sent' },
+               { key: 'failed', label: 'Failed' },
+               { key: 'skipped_invalid', label: 'Skipped' },
+               { key: 'pending', label: 'Pending' },
+               { key: 'processing', label: 'Processing' }
+             ]; %>
+          <% filters.forEach(function (f) { %>
+            <% var active = (statusFilter || '') === f.key; %>
+            <a class="btn <%= active ? 'btn-primary' : 'btn-outline-primary' %>"
+               href="/bulk/<%= job.id %><%= f.key ? ('?status=' + f.key) : '' %>"><%= f.label %></a>
+          <% }); %>
+        </div>
+        <% if (statusFilter) { %>
+          <span class="ms-2 small text-muted">Filtering by <code><%= statusFilter %></code></span>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h5 card-title">
+            Items
+            <span class="text-muted small">(<%= items.length %> shown)</span>
+          </h2>
+          <div class="table-responsive" style="max-height: 560px;">
+            <table class="table table-sm table-striped small align-middle">
+              <thead>
+                <tr>
+                  <th>#</th><th>Recipient</th><th>Status</th>
+                  <th>wamid</th><th>Attempts</th><th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (items && items.length) { %>
+                  <% items.forEach(function (it) { %>
+                    <%
+                      var badgeClass = 'bg-secondary';
+                      if (it.status === 'sent') badgeClass = 'bg-success';
+                      else if (it.status === 'failed') badgeClass = 'bg-danger';
+                      else if (it.status === 'skipped_invalid') badgeClass = 'bg-warning text-dark';
+                      else if (it.status === 'processing') badgeClass = 'bg-info text-dark';
+                    %>
+                    <tr>
+                      <td><%= it.id %></td>
+                      <td><%= it.to_e164 || it.raw_input || '—' %></td>
+                      <td><span class="badge <%= badgeClass %>"><%= it.status %></span></td>
+                      <td class="text-break"><%= it.wamid || '—' %></td>
+                      <td><%= it.attempts %></td>
+                      <td class="text-break"><%= it.error_detail || '' %></td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr><td colspan="6" class="text-muted">No items<%= statusFilter ? (' with status "' + statusFilter + '"') : '' %>.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% } %>
+  </main>
+
+  <% if (job) { %>
+  <script>
+    (function () {
+      var jobId = <%= job.id %>;
+      var finished = <%= progress.finished ? 'true' : 'false' %>;
+      var POLL_MS = 3000;
+
+      var bar = document.getElementById('progress-bar');
+      var pct = document.getElementById('progress-pct');
+      var xofy = document.getElementById('progress-xofy');
+      var statusBadge = document.getElementById('job-status');
+      var cSent = document.getElementById('c-sent');
+      var cFailed = document.getElementById('c-failed');
+      var cSkipped = document.getElementById('c-skipped');
+      var cProcessing = document.getElementById('c-processing');
+      var cPending = document.getElementById('c-pending');
+
+      function apply(d) {
+        bar.style.width = d.percent + '%';
+        bar.parentNode.setAttribute('aria-valuenow', d.percent);
+        pct.textContent = d.percent + '%';
+        xofy.textContent = d.done + ' of ' + d.total;
+        statusBadge.textContent = d.status;
+        cSent.textContent = d.sent;
+        cFailed.textContent = d.failed;
+        cSkipped.textContent = d.skipped;
+        cProcessing.textContent = d.processing;
+        cPending.textContent = d.pending;
+        if (d.finished) {
+          bar.classList.remove('progress-bar-animated');
+        }
+      }
+
+      function poll() {
+        fetch('/bulk/' + jobId + '/progress', {
+          headers: { 'Accept': 'application/json' },
+        })
+          .then(function (res) { return res.json(); })
+          .then(function (d) {
+            if (!d || !d.ok) return;
+            apply(d);
+            // Stop polling once the job is finished (completed/failed).
+            if (!d.finished) {
+              setTimeout(poll, POLL_MS);
+            }
+          })
+          .catch(function () {
+            // Transient error — try again on the next interval.
+            setTimeout(poll, POLL_MS);
+          });
+      }
+
+      // Only poll while the job is still in flight.
+      if (!finished) {
+        setTimeout(poll, POLL_MS);
+      }
+    })();
+  </script>
+  <% } %>
+</body>
+</html>
