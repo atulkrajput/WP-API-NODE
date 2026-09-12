@@ -19,8 +19,9 @@ webhook callbacks.
 - **MySQL** 8.x (or MariaDB 10.5+) with a database you can create tables in.
 - A **Meta WhatsApp Cloud API** app: an access token, a phone number id, an app
   secret (for webhook signature verification), and a webhook verify token.
-- For webhooks in staging/production: a **public HTTPS URL** that Meta can reach
-  (Meta only calls HTTPS endpoints).
+- For Meta in staging/production: a **public HTTPS URL** that Meta can reach
+  (Meta only calls HTTPS endpoints). The app provides `/privacy-policy` for the
+  Meta Privacy Policy URL and `/webhook` for WhatsApp callbacks.
 
 ## Environment setup
 

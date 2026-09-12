@@ -25,6 +25,7 @@ const validationController = require('../controllers/validation');
 const messageController = require('../controllers/message');
 const bulkController = require('../controllers/bulk');
 const dashboardController = require('../controllers/dashboard');
+const privacyController = require('../controllers/privacy');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -90,6 +91,12 @@ function handleCsvUpload(req, res, next) {
     return next(err);
   });
 }
+
+// --- Public policy ---
+// Meta requires a publicly reachable Privacy Policy URL. Keep this route
+// outside the authenticated surface so Meta and unauthenticated visitors can
+// load it without a session or CSRF token.
+router.get('/privacy-policy', privacyController.getPrivacyPolicy);
 
 // --- Auth (public) ---
 router.get('/login', authController.getLogin);
