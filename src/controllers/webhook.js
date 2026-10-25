@@ -25,6 +25,8 @@ const crypto = require('crypto');
 const config = require('../config');
 const messageModel = require('../models/message');
 const webhookEventModel = require('../models/webhookEvent');
+const inboundService = require('../services/inboundService');
+const callbackService = require('../services/callbackService');
 
 /** Structured logger that never leaks secrets (NFR-4, NFR-7). */
 function log(event, fields) {
@@ -210,6 +212,8 @@ async function postCallback(req, res, next) {
           from: outcome.from,
           to: outcome.to,
         });
+        // Notify the project that sent it (no-op for admin-UI sends).
+        await callbackService.onStatusChange(wamid);
       } else {
         // Monotonic guard prevented a regression / duplicate (NFR-3).
         log('webhook.status.no_change', {
@@ -221,6 +225,9 @@ async function postCallback(req, res, next) {
 
       await webhookEventModel.markProcessed(event.id);
     }
+
+    // Customer messages (replies, STOP, button taps).
+    await inboundService.processWebhook(body);
 
     return res.sendStatus(200);
   } catch (err) {

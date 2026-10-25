@@ -29,6 +29,7 @@ const request = require('supertest');
 const bcrypt = require('bcryptjs');
 
 // Mock DB-backed models + the WhatsApp service before requiring the app.
+jest.mock('../src/models/contact');
 jest.mock('../src/models/admin');
 jest.mock('../src/models/validationResult');
 jest.mock('../src/services/whatsappService');

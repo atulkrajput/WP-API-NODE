@@ -89,10 +89,27 @@ const config = {
     redisUrl: process.env.REDIS_URL || '',
   },
 
+  inbound: {
+    // Reject free text up front when we know the 24h window is closed (Meta
+    // would reject it anyway with error 131047). Window = last inbound message.
+    enforceSessionWindow: bool(process.env.ENFORCE_SESSION_WINDOW, true),
+  },
+
+  api: {
+    // Max API requests per key per minute (simple in-memory limiter).
+    rateLimitPerMin: int(process.env.API_RATE_LIMIT_PER_MIN, 120),
+  },
+
   upload: {
     // max CSV upload size in bytes (default 5 MB)
     maxBytes: int(process.env.UPLOAD_MAX_BYTES, 5 * 1024 * 1024),
   },
 };
+
+// Fail fast on an unsafe production setup rather than run with a guessable
+// session secret.
+if (config.isProd && config.session.secret === 'change-me-in-env') {
+  throw new Error('SESSION_SECRET must be set in production.');
+}
 
 module.exports = config;

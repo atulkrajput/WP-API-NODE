@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <% title = (state.name || e164) + ' — Inbox — WhatsApp Hub'; %>
+  <%- include('partials/head', { title: title }) %>
+</head>
+<body>
+  <%- include('partials/navbar', { username: username, active: 'inbox' }) %>
+
+  <main class="app-main">
+    <%- include('partials/flash') %>
+
+    <div class="page-head">
+      <div>
+        <p class="mb-1 small"><a href="/inbox">← Inbox</a></p>
+        <h1><%= state.name || e164 %></h1>
+        <p>
+          <%= state.name ? e164 + ' · ' : '' %>
+          <% if (state.optedOut) { %><span class="badge bg-danger">opted out <%= state.optedOutAt %></span>
+          <% } else if (state.sessionOpen) { %><span class="badge bg-success">window open until <%= state.sessionExpiresAt %> UTC</span>
+          <% } else { %><span class="badge bg-secondary">window closed — templates only</span><% } %>
+        </p>
+      </div>
+      <form action="<%= threadUrl %>/opt-out" method="post" class="m-0" id="opt-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <input type="hidden" name="optedOut" value="<%= state.optedOut ? '0' : '1' %>" />
+        <button type="submit" class="btn btn-sm <%= state.optedOut ? 'btn-outline-success' : 'btn-outline-danger' %>">
+          <%= state.optedOut ? 'Clear opt-out' : 'Mark opted out' %>
+        </button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-body chat" id="chat">
+        <% if (!items.length) { %><p class="text-muted small mb-0">No messages with this number yet.</p><% } %>
+        <% items.forEach(function (m) { %>
+          <div class="bubble-row <%= m.dir %>">
+            <div class="bubble">
+              <% if (m.msg_type && m.msg_type !== 'text') { %><div class="bubble-type"><%= m.msg_type %></div><% } %>
+              <div class="bubble-body"><%= m.body || '' %></div>
+              <div class="bubble-meta">
+                <%= m.at %>
+                <% if (m.dir === 'out') { %> · <%= m.status %><% if (m.error_title) { %> — <%= m.error_title %><% } %><% } %>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+      <div class="card-body border-top">
+        <% if (state.optedOut) { %>
+          <p class="text-muted small mb-0">This contact sent STOP. Sending is blocked until they send START.</p>
+        <% } else if (state.sessionOpen) { %>
+          <form action="<%= threadUrl %>/reply" method="post" class="d-flex gap-2">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <textarea name="body" class="form-control" rows="2" maxlength="4096" placeholder="Type a reply…" required></textarea>
+            <button type="submit" class="btn btn-success align-self-end">Send</button>
+          </form>
+        <% } else { %>
+          <p class="text-muted small mb-0">The 24-hour window is closed. Re-open the conversation with an approved
+            <a href="/messages">template</a>; free text works again once they reply.</p>
+        <% } %>
+      </div>
+    </div>
+  </main>
+  <script nonce="<%= cspNonce %>">
+    (function () {
+      var chat = document.getElementById('chat');
+      if (chat) chat.scrollTop = chat.scrollHeight;
+      var f = document.getElementById('opt-form');
+      if (f) f.addEventListener('submit', function (e) {
+        if (!confirm('Change this contact\'s opt-out status?')) e.preventDefault();
+      });
+    })();
+  </script>
+</body>
+</html>

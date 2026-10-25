@@ -7,12 +7,18 @@
 <body>
   <%- include('partials/navbar', { username: username, active: 'dashboard' }) %>
 
-  <main class="container py-4">
+  <main class="app-main">
     <%- include('partials/flash') %>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h1 class="h3 mb-0">Dashboard</h1>
-      <span class="text-muted small">Signed in<%= username ? ' as ' + username : '' %></span>
+    <div class="page-head">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Last 30 days across the admin UI and every API project.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="/messages" class="btn btn-success btn-sm">Send message</a>
+        <a href="/bulk" class="btn btn-outline-success btn-sm">New bulk job</a>
+      </div>
     </div>
 
     <% if (typeof summaryErrors !== 'undefined' && summaryErrors && summaryErrors.length) { %>
@@ -22,85 +28,91 @@
       </div>
     <% } %>
 
-    <!-- Validation-tier legend: makes the Tier A vs Tier B distinction prominent
-         and unmistakable across the app (Requirements 2 & 3). -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <h2 class="h6 text-uppercase text-muted mb-2">How validation works</h2>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <div class="d-flex">
-              <span class="badge bg-success align-self-start me-2">Tier A</span>
-              <div class="small">
-                <strong>Format check</strong> via libphonenumber — free and instant.
-                Confirms a number is well-formed. It does <strong>not</strong> confirm
-                the number is on WhatsApp or reachable.
-              </div>
-            </div>
+    <% var k = (typeof kpis !== 'undefined' && kpis) ? kpis : { total: 0, delivered: 0, read: 0, failed: 0, inFlight: 0, deliveryRate: null }; %>
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-xl-3"><div class="card kpi">
+        <div class="kpi-label">Messages</div>
+        <div class="kpi-value"><%= k.total.toLocaleString('en-US') %></div>
+        <div class="kpi-sub"><%= k.inFlight %> in flight</div>
+      </div></div>
+      <div class="col-6 col-xl-3"><div class="card kpi">
+        <div class="kpi-label">Delivery rate</div>
+        <div class="kpi-value <%= k.deliveryRate === null ? '' : (k.deliveryRate >= 90 ? 'kpi-good' : 'kpi-bad') %>"><%= k.deliveryRate === null ? '—' : k.deliveryRate + '%' %></div>
+        <div class="kpi-sub">delivered ÷ (delivered + failed)</div>
+      </div></div>
+      <div class="col-6 col-xl-3"><div class="card kpi">
+        <div class="kpi-label">Delivered</div>
+        <div class="kpi-value"><%= k.delivered.toLocaleString('en-US') %></div>
+        <div class="kpi-sub"><%= k.read %> read</div>
+      </div></div>
+      <div class="col-6 col-xl-3"><div class="card kpi">
+        <div class="kpi-label">Failed</div>
+        <div class="kpi-value <%= k.failed > 0 ? 'kpi-bad' : '' %>"><%= k.failed.toLocaleString('en-US') %></div>
+        <div class="kpi-sub">check error codes below</div>
+      </div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <% var checks = (typeof setupChecks !== 'undefined' && setupChecks) ? setupChecks : []; %>
+      <% if (checks.length) { %>
+      <div class="col-lg-5">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Go-live checklist</span>
+            <% if (setupDone) { %><span class="badge bg-success">Ready</span><% } else { %><span class="badge bg-warning">Action needed</span><% } %>
           </div>
-          <div class="col-md-6">
-            <div class="d-flex">
-              <span class="badge bg-primary align-self-start me-2">Tier B</span>
-              <div class="small">
-                <strong>Deliverability check</strong> — attempts a real send via the
-                Cloud API. <span class="text-danger">Consumes a message</span> and final
-                status arrives asynchronously via webhook.
-              </div>
-            </div>
+          <div class="card-body py-2">
+            <ul class="check-list small">
+              <% checks.forEach(function (c) { %>
+                <li>
+                  <span class="check-dot <%= c.ok ? 'ok' : 'no' %>"><%= c.ok ? '✓' : '!' %></span>
+                  <div><div class="fw-semibold"><%= c.label %></div><% if (!c.ok) { %><div class="text-muted"><%= c.hint %></div><% } %></div>
+                </li>
+              <% }); %>
+              <li>
+                <span class="check-dot warn">i</span>
+                <div><div class="fw-semibold">Webhook callback URL</div><code><%= webhookUrl %></code><div class="text-muted">Subscribe to the <strong>messages</strong> field in Meta.</div></div>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
-    </div>
+      <% } %>
+      <div class="<%= checks.length ? 'col-lg-7' : 'col-12' %>">
+        <div class="row g-3">
+          <div class="col-sm-6"><a href="/validate" class="text-decoration-none text-reset"><div class="card h-100"><div class="card-body action-tile">
+            <span class="action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span>
+            <div><h2 class="h6 mb-1">Validate a number</h2><p class="text-muted small mb-0">Tier A format &amp; Tier B deliverability.</p></div>
+          </div></div></a></div>
+          <div class="col-sm-6"><a href="/validate/bulk" class="text-decoration-none text-reset"><div class="card h-100"><div class="card-body action-tile">
+            <span class="action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+            <div><h2 class="h6 mb-1">Bulk validate (CSV)</h2><p class="text-muted small mb-0">Clean a list before you send.</p></div>
+          </div></div></a></div>
+          <div class="col-sm-6"><a href="/messages" class="text-decoration-none text-reset"><div class="card h-100"><div class="card-body action-tile">
+            <span class="action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></span>
+            <div><h2 class="h6 mb-1">Send a message</h2><p class="text-muted small mb-0">Single template or free text.</p></div>
+          </div></div></a></div>
+          <div class="col-sm-6"><a href="/settings/api-keys" class="text-decoration-none text-reset"><div class="card h-100"><div class="card-body action-tile">
+            <span class="action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg></span>
+            <div><h2 class="h6 mb-1">Connect a project</h2><p class="text-muted small mb-0">Create an API key, send from any app.</p></div>
+          </div></div></a></div>
+        </div>
 
-    <!-- Template-vs-free-text guidance, prominent on the landing page (Req 5). -->
-    <div class="alert alert-info" role="alert">
-      <strong>Templates are the default send path.</strong> Outside a 24-hour customer
-      session window, <strong>only pre-approved templates</strong> can be delivered.
-      Free-text messages are <strong>only deliverable inside an open 24-hour session
-      window</strong>. Every send is format-checked (Tier A) before we call Meta.
-    </div>
-
-    <!-- Quick actions -->
-    <div class="row g-3 mb-4">
-      <div class="col-md-3 col-sm-6">
-        <a href="/validate" class="text-decoration-none">
-          <div class="card h-100">
-            <div class="card-body">
-              <h2 class="h6 card-title mb-1">Validate a number</h2>
-              <p class="card-text text-muted small mb-0">Tier A format &amp; Tier B deliverability.</p>
+        <div class="card mt-3">
+          <div class="card-body small">
+            <div class="d-flex gap-2 mb-2">
+              <span class="badge bg-success">Tier A</span>
+              <span><strong>Format check</strong> — free, instant. Does <strong>not</strong> confirm the number is on WhatsApp.</span>
+            </div>
+            <div class="d-flex gap-2 mb-2">
+              <span class="badge bg-primary">Tier B</span>
+              <span><strong>Deliverability</strong> — a real template send. <span class="text-danger">Billed by Meta</span>; result arrives via webhook.</span>
+            </div>
+            <div class="text-muted">
+              <strong>Templates are the default send path.</strong> Free text is only deliverable inside an open 24-hour session window.
             </div>
           </div>
-        </a>
-      </div>
-      <div class="col-md-3 col-sm-6">
-        <a href="/validate/bulk" class="text-decoration-none">
-          <div class="card h-100">
-            <div class="card-body">
-              <h2 class="h6 card-title mb-1">Bulk validate (CSV)</h2>
-              <p class="card-text text-muted small mb-0">Tier A report for a list.</p>
-            </div>
-          </div>
-        </a>
-      </div>
-      <div class="col-md-3 col-sm-6">
-        <a href="/messages" class="text-decoration-none">
-          <div class="card h-100">
-            <div class="card-body">
-              <h2 class="h6 card-title mb-1">Send a message</h2>
-              <p class="card-text text-muted small mb-0">Single template or free text.</p>
-            </div>
-          </div>
-        </a>
-      </div>
-      <div class="col-md-3 col-sm-6">
-        <a href="/bulk" class="text-decoration-none">
-          <div class="card h-100">
-            <div class="card-body">
-              <h2 class="h6 card-title mb-1">Bulk send (CSV)</h2>
-              <p class="card-text text-muted small mb-0">Queued, rate-limited sends.</p>
-            </div>
-          </div>
-        </a>
+        </div>
       </div>
     </div>
 
@@ -109,11 +121,11 @@
       <div class="col-lg-6">
         <div class="card h-100">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-semibold">Recent validations</span>
+            <span>Recent validations</span>
             <a href="/validate" class="small">Validate →</a>
           </div>
           <div class="table-responsive">
-            <table class="table table-sm table-striped small align-middle mb-0">
+            <table class="table table-sm table-hover small align-middle mb-0">
               <thead>
                 <tr><th>Input</th><th>E.164</th><th>Tier</th><th>Result</th><th>When</th></tr>
               </thead>
@@ -151,11 +163,11 @@
       <div class="col-lg-6">
         <div class="card h-100">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-semibold">Recent messages</span>
+            <span>Recent messages</span>
             <a href="/messages" class="small">Send →</a>
           </div>
           <div class="table-responsive">
-            <table class="table table-sm table-striped small align-middle mb-0">
+            <table class="table table-sm table-hover small align-middle mb-0">
               <thead>
                 <tr><th>Recipient</th><th>Type</th><th>Status</th><th>When</th></tr>
               </thead>
@@ -193,11 +205,11 @@
       <div class="col-12">
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-semibold">Active bulk jobs</span>
+            <span>Active bulk jobs</span>
             <a href="/bulk" class="small">All jobs →</a>
           </div>
           <div class="table-responsive">
-            <table class="table table-sm table-striped small align-middle mb-0">
+            <table class="table table-sm table-hover small align-middle mb-0">
               <thead>
                 <tr>
                   <th>#</th><th>Name</th><th>Template</th><th>Status</th>

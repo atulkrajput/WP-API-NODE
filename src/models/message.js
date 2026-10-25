@@ -61,7 +61,29 @@ async function insert(data, db = pool) {
     deliveredAt = null,
     readAt = null,
     failedAt = null,
+    apiClientId = null,
+    clientRef = null,
   } = data;
+
+  // API-originated sends also record the calling project. Only touch these
+  // columns when set, so the admin UI keeps working before migration 002.
+  if (apiClientId) {
+    const [r] = await db.execute(
+      `INSERT INTO messages
+         (wamid, to_e164, direction, msg_type, template_name, language,
+          body_preview, status, error_code, error_title, error_detail,
+          bulk_job_item_id, api_client_id, client_ref,
+          accepted_at, sent_at, delivered_at, read_at, failed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        wamid, toE164, direction, msgType, templateName, language,
+        bodyPreview, status, errorCode, errorTitle, errorDetail,
+        bulkJobItemId, apiClientId, clientRef,
+        acceptedAt, sentAt, deliveredAt, readAt, failedAt,
+      ]
+    );
+    return r.insertId;
+  }
 
   const [result] = await db.execute(
     `INSERT INTO messages
@@ -281,8 +303,82 @@ async function recent(opts = {}, db = pool) {
   return rows;
 }
 
+/**
+ * Fetch a message only if it belongs to the given API client (tenant guard).
+ */
+async function getByIdForClient(id, apiClientId, db = pool) {
+  const [rows] = await db.execute(
+    `SELECT id, wamid, to_e164, msg_type, template_name, client_ref, status,
+            error_code, error_title, error_detail, accepted_at, sent_at,
+            delivered_at, read_at, failed_at, created_at
+       FROM messages
+      WHERE id = ? AND api_client_id = ?
+      LIMIT 1`,
+    [id, apiClientId]
+  );
+  return rows.length ? rows[0] : null;
+}
+
+/**
+ * Message counts by status over the last N days (dashboard KPIs).
+ * @returns {Promise<Array<{status:string, c:number}>>}
+ */
+async function statusCounts(opts = {}, db = pool) {
+  const days = Number.isFinite(opts.days) ? opts.days : 30;
+  const [rows] = await db.query(
+    `SELECT status, COUNT(*) AS c
+       FROM messages
+      WHERE created_at >= UTC_TIMESTAMP() - INTERVAL ? DAY
+      GROUP BY status`,
+    [days]
+  );
+  return rows;
+}
+
+/** Row shape needed to build a status callback (includes the project id). */
+async function findForCallback(wamid, db = pool) {
+  const [rows] = await db.execute(
+    `SELECT id, wamid, to_e164, msg_type, template_name, client_ref, status,
+            api_client_id, error_code, error_title, error_detail, accepted_at,
+            sent_at, delivered_at, read_at, failed_at, created_at
+       FROM messages WHERE wamid = ? LIMIT 1`,
+    [wamid]
+  );
+  return rows.length ? rows[0] : null;
+}
+
+/**
+ * Project an inbound message should be routed to: the project that sent the
+ * message being replied to, else the project that last messaged this number.
+ */
+async function findRoutingClient({ contextWamid, fromE164 }, db = pool) {
+  if (contextWamid) {
+    const [rows] = await db.execute(
+      'SELECT id, api_client_id, client_ref FROM messages WHERE wamid = ? LIMIT 1',
+      [contextWamid]
+    );
+    if (rows[0] && rows[0].api_client_id) {
+      return { apiClientId: rows[0].api_client_id, messageId: rows[0].id, reference: rows[0].client_ref };
+    }
+  }
+  const [rows] = await db.execute(
+    `SELECT id, api_client_id, client_ref FROM messages
+      WHERE to_e164 = ? AND api_client_id IS NOT NULL
+      ORDER BY id DESC LIMIT 1`,
+    [fromE164]
+  );
+  if (rows[0]) {
+    return { apiClientId: rows[0].api_client_id, messageId: null, reference: null };
+  }
+  return null;
+}
+
 module.exports = {
   insert,
+  findForCallback,
+  findRoutingClient,
+  getByIdForClient,
+  statusCounts,
   getById,
   findByWamid,
   advanceStatus,

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <% title = 'Inbox — WhatsApp Hub'; %>
+  <%- include('partials/head', { title: title }) %>
+</head>
+<body>
+  <%- include('partials/navbar', { username: username, active: 'inbox' }) %>
+
+  <main class="app-main">
+    <%- include('partials/flash') %>
+
+    <div class="page-head">
+      <div>
+        <h1>Inbox</h1>
+        <p>Customer replies. You can answer with free text for 24 hours after their last message.</p>
+      </div>
+    </div>
+
+    <% if (loadError) { %><div class="alert alert-danger"><%= loadError %></div><% } %>
+
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle small">
+          <thead><tr><th>Contact</th><th>Last message</th><th>Window</th><th>Msgs</th><th>Received</th></tr></thead>
+          <tbody>
+            <% if (conversations.length) { %>
+              <% conversations.forEach(function (c) { var href = '/inbox/' + encodeURIComponent(c.from_e164); %>
+                <tr class="row-link" data-href="<%= href %>">
+                  <td>
+                    <a href="<%= href %>" class="fw-semibold text-reset text-decoration-none"><%= c.contact_name || c.from_e164 %></a>
+                    <% if (c.contact_name) { %><div class="text-muted"><%= c.from_e164 %></div><% } %>
+                  </td>
+                  <td class="text-truncate" style="max-width: 360px;">
+                    <% if (c.msg_type !== 'text') { %><span class="badge bg-secondary me-1"><%= c.msg_type %></span><% } %><%= c.text_body || '' %>
+                  </td>
+                  <td>
+                    <% if (c.opted_out_at) { %><span class="badge bg-danger">opted out</span>
+                    <% } else if (Number(c.session_open)) { %><span class="badge bg-success">open</span>
+                    <% } else { %><span class="badge bg-secondary">closed</span><% } %>
+                  </td>
+                  <td><%= c.total %></td>
+                  <td class="text-muted"><%= c.received_at %></td>
+                </tr>
+              <% }); %>
+            <% } else { %>
+              <tr><td colspan="5" class="text-muted">No replies yet. Messages customers send to your WhatsApp number appear here.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  <script nonce="<%= cspNonce %>">
+    document.querySelectorAll('tr.row-link').forEach(function (tr) {
+      tr.style.cursor = 'pointer';
+      tr.addEventListener('click', function (e) { if (e.target.tagName !== 'A') location.href = tr.dataset.href; });
+    });
+  </script>
+</body>
+</html>

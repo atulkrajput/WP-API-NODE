@@ -18,6 +18,40 @@
 const validationResultModel = require('../models/validationResult');
 const messageModel = require('../models/message');
 const bulkJobModel = require('../models/bulkJob');
+const config = require('../config');
+
+/**
+ * Go-live checklist from config. Booleans only — never expose secret values.
+ */
+function setupChecks() {
+  const m = config.meta;
+  return [
+    { label: 'Access token (WHATSAPP_TOKEN)', ok: Boolean(m.token), hint: 'Use a permanent System User token, not the 24h temporary one.' },
+    { label: 'Phone number ID (PHONE_NUMBER_ID)', ok: Boolean(m.phoneNumberId), hint: 'The numeric ID from WhatsApp → API Setup, not the phone number.' },
+    { label: 'Business account ID (WABA_ID)', ok: Boolean(m.wabaId), hint: 'Needed for template sync and account calls.' },
+    { label: 'App secret (APP_SECRET)', ok: Boolean(m.appSecret), hint: 'Without it every webhook is rejected, so statuses never update.' },
+    { label: 'Webhook verify token', ok: Boolean(m.webhookVerifyToken), hint: 'Must match the token entered in Meta → WhatsApp → Configuration.' },
+    { label: 'Session secret', ok: config.session.secret !== 'change-me-in-env', hint: 'Set SESSION_SECRET to a long random string.' },
+  ];
+}
+
+/** Turn [{status, c}] rows into KPI numbers. */
+function buildKpis(rows) {
+  const by = {};
+  (rows || []).forEach((r) => { by[r.status] = Number(r.c) || 0; });
+  const total = Object.values(by).reduce((a, b) => a + b, 0);
+  const delivered = (by.delivered || 0) + (by.read || 0);
+  const failed = by.failed || 0;
+  const settled = delivered + failed;
+  return {
+    total,
+    delivered,
+    read: by.read || 0,
+    failed,
+    inFlight: (by.accepted || 0) + (by.sent || 0),
+    deliveryRate: settled > 0 ? Math.round((delivered / settled) * 100) : null,
+  };
+}
 
 /** How many rows each summary panel shows. */
 const RECENT_LIMIT = 8;
@@ -52,7 +86,7 @@ async function getDashboard(req, res, next) {
   try {
     const errors = [];
 
-    const [recentValidations, recentMessages, activeJobs] = await Promise.all([
+    const [recentValidations, recentMessages, activeJobs, counts] = await Promise.all([
       safeRead(
         'recent validations',
         () => validationResultModel.recent({ limit: RECENT_LIMIT }),
@@ -68,7 +102,10 @@ async function getDashboard(req, res, next) {
         () => bulkJobModel.listActive({ limit: RECENT_LIMIT }),
         errors
       ),
+      safeRead('message stats', () => messageModel.statusCounts({ days: 30 }), errors),
     ]);
+
+    const checks = setupChecks();
 
     return res.render('dashboard', {
       username: req.session.username,
@@ -76,10 +113,14 @@ async function getDashboard(req, res, next) {
       recentMessages,
       activeJobs,
       summaryErrors: errors,
+      kpis: buildKpis(counts),
+      setupChecks: checks,
+      setupDone: checks.every((c) => c.ok),
+      webhookUrl: `${req.protocol}://${req.get('host')}/webhook`,
     });
   } catch (err) {
     return next(err);
   }
 }
 
-module.exports = { getDashboard, RECENT_LIMIT };
+module.exports = { getDashboard, RECENT_LIMIT, buildKpis, setupChecks };

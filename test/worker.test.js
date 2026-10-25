@@ -23,6 +23,8 @@
 
 process.env.NODE_ENV = 'test';
 
+jest.mock('../src/models/contact');
+
 const worker = require('../src/worker/worker');
 
 // -------------------- in-memory fakes --------------------
@@ -577,5 +579,32 @@ describe('startWorker driver guard (design §6, NFR-6)', () => {
     const res = await worker.startWorker({ config: { queue: { driver: 'bullmq' }, worker: cfg.worker } });
     expect(res.started).toBe(false);
     expect(res.task).toBeNull();
+  });
+});
+
+describe('tick — opted-out recipients are skipped', () => {
+  test('an opted-out number is failed without calling Meta; others still send', async () => {
+    const items = makeItemStore([
+      { id: 1, job_id: 10, to_e164: '+1', raw_input: 'x', variables: null, status: 'pending', attempts: 0, wamid: null, next_attempt_at: null, updated_at: '2024-01-01 00:00:00' },
+      { id: 2, job_id: 10, to_e164: '+2', raw_input: 'y', variables: null, status: 'pending', attempts: 0, wamid: null, next_attempt_at: null, updated_at: '2024-01-01 00:00:00' },
+    ]);
+    const jobs = makeJobStore([
+      { id: 10, template_name: 'promo', language: 'en_US', msg_type: 'template', status: 'running', sent_count: 0, failed_count: 0 },
+    ]);
+    const whatsappService = { sendTemplate: jest.fn(async () => ({ ok: true, wamid: 'wamid.OK' })), sendText: jest.fn() };
+    const contact = { isOptedOut: jest.fn(async (to) => to === '+1') };
+
+    const w = worker.createWorker({
+      config: cfg, whatsappService, bulkJob: jobs, bulkJobItem: items,
+      message: { insert: jest.fn(async () => 1) }, contact,
+      delay: jest.fn(async () => {}), logger: silentLogger,
+    });
+    const summary = await w.tick();
+
+    expect(summary).toMatchObject({ sent: 1, failed: 1 });
+    expect(items.store.rows[0].status).toBe('failed');
+    expect(items.store.rows[0].error_detail).toMatch(/opted out/);
+    expect(whatsappService.sendTemplate).toHaveBeenCalledTimes(1);
+    expect(whatsappService.sendTemplate.mock.calls[0][0]).toBe('+2');
   });
 });
