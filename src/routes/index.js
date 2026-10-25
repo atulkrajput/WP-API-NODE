@@ -27,6 +27,7 @@ const bulkController = require('../controllers/bulk');
 const dashboardController = require('../controllers/dashboard');
 const privacyController = require('../controllers/privacy');
 const apiKeysController = require('../controllers/apiKeys');
+const inboxController = require('../controllers/inbox');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -200,5 +201,16 @@ router.post('/bulk/:id/retry-failed', requireAuth, bulkController.postRetryFaile
 router.get('/settings/api-keys', requireAuth, apiKeysController.getPage);
 router.post('/settings/api-keys', requireAuth, apiKeysController.postCreate);
 router.post('/settings/api-keys/:id/revoke', requireAuth, apiKeysController.postRevoke);
+router.get('/settings/api-keys/:id', requireAuth, apiKeysController.getDetail);
+router.post('/settings/api-keys/:id/callback', requireAuth, apiKeysController.postCallback);
+router.post('/settings/api-keys/:id/rotate-secret', requireAuth, apiKeysController.postRotateSecret);
+router.post('/settings/api-keys/:id/test', requireAuth, apiKeysController.postTest);
+router.post('/settings/api-keys/:id/deliveries/:did/retry', requireAuth, apiKeysController.postRetryDelivery);
+
+// --- Inbox: customer replies (protected) ---
+router.get('/inbox', requireAuth, inboxController.getInbox);
+router.get('/inbox/:e164', requireAuth, inboxController.getThread);
+router.post('/inbox/:e164/reply', requireAuth, inboxController.postReply);
+router.post('/inbox/:e164/opt-out', requireAuth, inboxController.postOptOut);
 
 module.exports = router;

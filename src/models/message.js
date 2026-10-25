@@ -335,8 +335,48 @@ async function statusCounts(opts = {}, db = pool) {
   return rows;
 }
 
+/** Row shape needed to build a status callback (includes the project id). */
+async function findForCallback(wamid, db = pool) {
+  const [rows] = await db.execute(
+    `SELECT id, wamid, to_e164, msg_type, template_name, client_ref, status,
+            api_client_id, error_code, error_title, error_detail, accepted_at,
+            sent_at, delivered_at, read_at, failed_at, created_at
+       FROM messages WHERE wamid = ? LIMIT 1`,
+    [wamid]
+  );
+  return rows.length ? rows[0] : null;
+}
+
+/**
+ * Project an inbound message should be routed to: the project that sent the
+ * message being replied to, else the project that last messaged this number.
+ */
+async function findRoutingClient({ contextWamid, fromE164 }, db = pool) {
+  if (contextWamid) {
+    const [rows] = await db.execute(
+      'SELECT id, api_client_id, client_ref FROM messages WHERE wamid = ? LIMIT 1',
+      [contextWamid]
+    );
+    if (rows[0] && rows[0].api_client_id) {
+      return { apiClientId: rows[0].api_client_id, messageId: rows[0].id, reference: rows[0].client_ref };
+    }
+  }
+  const [rows] = await db.execute(
+    `SELECT id, api_client_id, client_ref FROM messages
+      WHERE to_e164 = ? AND api_client_id IS NOT NULL
+      ORDER BY id DESC LIMIT 1`,
+    [fromE164]
+  );
+  if (rows[0]) {
+    return { apiClientId: rows[0].api_client_id, messageId: null, reference: null };
+  }
+  return null;
+}
+
 module.exports = {
   insert,
+  findForCallback,
+  findRoutingClient,
   getByIdForClient,
   statusCounts,
   getById,

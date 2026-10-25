@@ -270,3 +270,21 @@ code, .font-monospace { font-size: 0.85em; }
 .auth-card .card-body { padding: 28px; }
 .auth-brand { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 18px; font-weight: 700; font-size: 1.1rem; }
 .auth-brand .app-brand-mark { width: 38px; height: 38px; }
+
+/* --- Inbox thread ------------------------------------------------------- */
+
+.chat { max-height: 60vh; overflow-y: auto; background: #f3f6f4; border-radius: var(--radius) var(--radius) 0 0; }
+.bubble-row { display: flex; margin-bottom: 10px; }
+.bubble-row.out { justify-content: flex-end; }
+.bubble {
+  max-width: min(560px, 80%);
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.bubble-row.out .bubble { background: #dcf8e8; border-color: #c3ecd5; }
+.bubble-body { white-space: pre-wrap; word-break: break-word; }
+.bubble-type { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.bubble-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; text-align: right; }

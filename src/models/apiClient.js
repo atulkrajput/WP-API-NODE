@@ -53,7 +53,7 @@ async function touch(id, db = pool) {
 /** All clients with 30-day message counts, newest first. */
 async function list(db = pool) {
   const [rows] = await db.query(
-    `SELECT c.id, c.name, c.key_prefix, c.is_active, c.last_used_at, c.revoked_at, c.created_at,
+    `SELECT c.id, c.name, c.key_prefix, c.callback_url, c.is_active, c.last_used_at, c.revoked_at, c.created_at,
             (SELECT COUNT(*) FROM messages m
               WHERE m.api_client_id = c.id
                 AND m.created_at >= UTC_TIMESTAMP() - INTERVAL 30 DAY) AS messages_30d
@@ -72,4 +72,46 @@ async function revoke(id, db = pool) {
   return result.affectedRows > 0;
 }
 
-module.exports = { create, findActiveByKey, touch, list, revoke, hashKey, generateKey, KEY_PREFIX };
+/** One client (admin detail page). Includes callback settings. */
+async function getById(id, db = pool) {
+  const [rows] = await db.execute(
+    `SELECT id, name, key_prefix, callback_url, callback_secret, is_active,
+            last_used_at, revoked_at, created_at
+       FROM api_clients WHERE id = ? LIMIT 1`,
+    [id]
+  );
+  return rows[0] || null;
+}
+
+/** Callback settings used when enqueueing events. */
+async function getCallback(id, db = pool) {
+  const [rows] = await db.execute(
+    'SELECT id, callback_url, callback_secret, is_active FROM api_clients WHERE id = ? LIMIT 1',
+    [id]
+  );
+  return rows[0] || null;
+}
+
+/** Set (or clear) the callback URL. Generates a signing secret on first set. */
+async function setCallbackUrl(id, url, db = pool) {
+  await db.execute(
+    `UPDATE api_clients
+        SET callback_url = ?,
+            callback_secret = COALESCE(callback_secret, ?)
+      WHERE id = ?`,
+    [url || null, generateSecret(), id]
+  );
+}
+
+/** Replace the signing secret. Returns the new value. */
+async function rotateSecret(id, db = pool) {
+  const secret = generateSecret();
+  await db.execute('UPDATE api_clients SET callback_secret = ? WHERE id = ?', [secret, id]);
+  return secret;
+}
+
+function generateSecret() {
+  return 'whsec_' + crypto.randomBytes(24).toString('base64url');
+}
+
+module.exports = { getById, getCallback, setCallbackUrl, rotateSecret, create, findActiveByKey, touch, list, revoke, hashKey, generateKey, KEY_PREFIX };

@@ -58,13 +58,14 @@
           <div class="card-header">Projects</div>
           <div class="table-responsive">
             <table class="table table-sm table-hover small align-middle">
-              <thead><tr><th>Project</th><th>Key</th><th>Msgs (30d)</th><th>Last used</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th>Project</th><th>Key</th><th>Callbacks</th><th>Msgs (30d)</th><th>Last used</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <% if (clients.length) { %>
                   <% clients.forEach(function (c) { %>
                     <tr>
-                      <td class="fw-semibold"><%= c.name %></td>
+                      <td class="fw-semibold"><a href="/settings/api-keys/<%= c.id %>"><%= c.name %></a></td>
                       <td><code><%= c.key_prefix %>…</code></td>
+                      <td><% if (c.callback_url) { %><span class="badge bg-success">on</span><% } else { %><a href="/settings/api-keys/<%= c.id %>" class="small">Set up</a><% } %></td>
                       <td><%= c.messages_30d || 0 %></td>
                       <td class="text-muted"><%= c.last_used_at || 'never' %></td>
                       <td><span class="badge <%= c.is_active ? 'bg-success' : 'bg-secondary' %>"><%= c.is_active ? 'active' : 'revoked' %></span></td>
@@ -79,7 +80,7 @@
                     </tr>
                   <% }); %>
                 <% } else { %>
-                  <tr><td colspan="6" class="text-muted">No keys yet. Create one for each project that should send WhatsApp messages.</td></tr>
+                  <tr><td colspan="7" class="text-muted">No keys yet. Create one for each project that should send WhatsApp messages.</td></tr>
                 <% } %>
               </tbody>
             </table>
@@ -115,6 +116,7 @@
             <ul class="text-muted mb-0 ps-3">
               <li>Free text: <code>{"to":"…","type":"text","text":"Hi"}</code> — only inside a 24-hour customer window.</li>
               <li>Status flow: accepted → sent → delivered → read (or failed).</li>
+              <li>Get pushed updates instead of polling: open a project and set its <strong>callback URL</strong>.</li>
               <li>Limit: <%= typeof rateLimit !== 'undefined' ? rateLimit : 120 %> requests/min per key. Over it → HTTP 429.</li>
             </ul>
           </div>

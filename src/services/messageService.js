@@ -11,6 +11,8 @@
 const phoneService = require('./phoneService');
 const whatsappService = require('./whatsappService');
 const messageModel = require('../models/message');
+const contactModel = require('../models/contact');
+const config = require('../config');
 
 function utcNow() {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -74,6 +76,42 @@ async function sendOne(input) {
     };
   }
   const e164 = phone.e164;
+
+  // Opt-out and 24h-window guards. Fail open on a lookup error: Meta still
+  // enforces the window, and a DB blip should not block all sending.
+  let state = null;
+  try {
+    state = await contactModel.getState(e164);
+  } catch (err) {
+    state = null;
+  }
+  if (state && state.optedOut) {
+    return {
+      status: 409,
+      body: {
+        ok: false,
+        stage: 'policy',
+        error: 'recipient_opted_out',
+        reason: 'Recipient opted out (sent STOP). They must send START before you can message them.',
+        message: 'Recipient opted out (sent STOP). They must send START before you can message them.',
+        to: e164,
+      },
+    };
+  }
+  if (
+    mode === 'text' &&
+    state &&
+    state.sessionOpen === false &&
+    (config.inbound || {}).enforceSessionWindow !== false
+  ) {
+    const reason = state.lastInboundAt
+      ? `24-hour window closed (last customer message ${state.lastInboundAt} UTC). Send a template instead.`
+      : 'No customer message in the last 24 hours, so free text cannot be delivered. Send a template instead.';
+    return {
+      status: 409,
+      body: { ok: false, stage: 'policy', error: 'outside_session_window', reason, message: reason, to: e164 },
+    };
+  }
 
   let sendResult;
   let msgType;

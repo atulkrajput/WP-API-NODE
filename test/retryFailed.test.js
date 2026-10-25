@@ -18,6 +18,7 @@ process.env.SESSION_SECRET = 'test-secret';
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
 
+jest.mock('../src/models/contact');
 jest.mock('../src/models/admin');
 jest.mock('../src/models/bulkJob');
 jest.mock('../src/models/bulkJobItem');

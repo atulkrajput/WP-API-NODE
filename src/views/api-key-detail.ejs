@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <% title = project.name + ' — API key — WhatsApp Hub'; %>
+  <%- include('partials/head', { title: title }) %>
+</head>
+<body>
+  <%- include('partials/navbar', { username: username, active: 'api-keys' }) %>
+
+  <main class="app-main">
+    <%- include('partials/flash') %>
+
+    <div class="page-head">
+      <div>
+        <p class="mb-1 small"><a href="/settings/api-keys">← API keys</a></p>
+        <h1><%= project.name %></h1>
+        <p>Key <code><%= project.key_prefix %>…</code> ·
+          <span class="badge <%= project.is_active ? 'bg-success' : 'bg-secondary' %>"><%= project.is_active ? 'active' : 'revoked' %></span>
+          · last used <%= project.last_used_at || 'never' %></p>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-xl-7">
+        <div class="card mb-4">
+          <div class="card-header">Callbacks</div>
+          <div class="card-body">
+            <p class="small text-muted">We POST <code>message.status</code> (sent, delivered, read, failed) for messages this project sends, and
+              <code>message.received</code> when a customer replies to it. Failed deliveries retry for ~7 hours.</p>
+            <form action="/settings/api-keys/<%= project.id %>/callback" method="post" class="row g-2 mb-3">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <div class="col-md-9">
+                <label class="form-label" for="callbackUrl">Callback URL</label>
+                <input type="url" class="form-control" id="callbackUrl" name="callbackUrl" maxlength="500"
+                       placeholder="https://your-project.com/webhooks/whatsapp" value="<%= project.callback_url || '' %>" />
+                <div class="form-text">Leave empty and save to turn callbacks off.</div>
+              </div>
+              <div class="col-md-3 d-grid align-self-start" style="margin-top: 1.95rem;">
+                <button type="submit" class="btn btn-success">Save</button>
+              </div>
+            </form>
+
+            <% if (project.callback_secret) { %>
+              <label class="form-label">Signing secret</label>
+              <div class="input-group mb-2">
+                <input type="password" readonly class="form-control font-monospace" id="secret" value="<%= project.callback_secret %>" />
+                <button class="btn btn-outline-secondary" type="button" id="reveal">Show</button>
+                <button class="btn btn-outline-secondary" type="button" id="copy">Copy</button>
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <form action="/settings/api-keys/<%= project.id %>/test" method="post" class="m-0">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                  <button type="submit" class="btn btn-sm btn-outline-success" <%= project.callback_url ? '' : 'disabled' %>>Send test event</button>
+                </form>
+                <form action="/settings/api-keys/<%= project.id %>/rotate-secret" method="post" class="m-0" id="rotate-form">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Rotate secret</button>
+                </form>
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Recent deliveries</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover small align-middle">
+              <thead><tr><th>#</th><th>Event</th><th>Status</th><th>Tries</th><th>Result</th><th>When</th><th></th></tr></thead>
+              <tbody>
+                <% if (deliveries.length) { %>
+                  <% deliveries.forEach(function (d) {
+                       var cls = { delivered: 'bg-success', failed: 'bg-danger', pending: 'bg-warning', sending: 'bg-info' }[d.status] || 'bg-secondary'; %>
+                    <tr>
+                      <td><%= d.id %></td>
+                      <td><code><%= d.event %></code></td>
+                      <td><span class="badge <%= cls %>"><%= d.status %></span></td>
+                      <td><%= d.attempts %></td>
+                      <td class="text-truncate" style="max-width: 220px;" title="<%= d.last_error || '' %>">
+                        <%= d.response_code ? 'HTTP ' + d.response_code : '' %><%= d.last_error && !d.response_code ? d.last_error : '' %>
+                        <% if (d.status === 'pending' && d.attempts > 0) { %><div class="text-muted">retry at <%= d.next_attempt_at %></div><% } %>
+                      </td>
+                      <td class="text-muted"><%= d.delivered_at || d.created_at %></td>
+                      <td class="text-end">
+                        <% if (d.status === 'failed') { %>
+                          <form action="/settings/api-keys/<%= project.id %>/deliveries/<%= d.id %>/retry" method="post" class="m-0">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">Retry</button>
+                          </form>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr><td colspan="7" class="text-muted">No deliveries yet.</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-5">
+        <div class="card">
+          <div class="card-header">Payload &amp; verification</div>
+          <div class="card-body small">
+            <p class="mb-2 fw-semibold">Headers</p>
+<pre class="code-box mb-3">X-WAHub-Event: message.status
+X-WAHub-Delivery: 812
+X-WAHub-Signature: t=1761400000,v1=5f2c…</pre>
+            <p class="mb-2 fw-semibold">message.received body</p>
+<pre class="code-box mb-3">{
+  "id": "evt_9c1e…",
+  "event": "message.received",
+  "createdAt": "2026-10-25T09:20:00.000Z",
+  "data": {
+    "from": "+919876543210",
+    "name": "Asha",
+    "type": "text",
+    "text": "Yes, confirm my order",
+    "optAction": null,
+    "replyTo": { "messageId": 123, "reference": "order-1042" }
+  }
+}</pre>
+            <p class="mb-2 fw-semibold">Verify (Node.js)</p>
+<pre class="code-box mb-3">const crypto = require('crypto');
+// rawBody = exact request body string
+function verify(rawBody, header, secret) {
+  const p = Object.fromEntries(header.split(',').map(s =&gt; s.split('=')));
+  if (Math.abs(Date.now() / 1000 - p.t) &gt; 300) return false;
+  const v1 = crypto.createHmac('sha256', secret)
+    .update(p.t + '.' + rawBody).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(v1), Buffer.from(p.v1));
+}</pre>
+            <ul class="text-muted mb-0 ps-3">
+              <li>Reply 2xx within 10 seconds. Anything else is retried (30s, 2m, 10m, 1h, 6h).</li>
+              <li>Delivery is at-least-once: dedupe on <code>id</code>.</li>
+              <li><code>optAction</code> is <code>opted_out</code> when the customer sends STOP. Stop messaging them.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script nonce="<%= cspNonce %>">
+    (function () {
+      var secret = document.getElementById('secret');
+      var reveal = document.getElementById('reveal');
+      var copy = document.getElementById('copy');
+      if (reveal) reveal.addEventListener('click', function () {
+        var hidden = secret.type === 'password';
+        secret.type = hidden ? 'text' : 'password';
+        reveal.textContent = hidden ? 'Hide' : 'Show';
+      });
+      if (copy) copy.addEventListener('click', function () {
+        (navigator.clipboard ? navigator.clipboard.writeText(secret.value) : Promise.reject())
+          .catch(function () {}).finally(function () { copy.textContent = 'Copied'; });
+      });
+      var rotate = document.getElementById('rotate-form');
+      if (rotate) rotate.addEventListener('submit', function (e) {
+        if (!confirm('Rotate the secret? The project must switch to the new one or its signature checks will fail.')) e.preventDefault();
+      });
+    })();
+  </script>
+</body>
+</html>

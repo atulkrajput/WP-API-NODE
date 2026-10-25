@@ -7,6 +7,7 @@
     'bulk-validate': '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
     messages: '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>',
     bulk: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
     'api-keys': '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>'
   };
   function link(key, href, label) {
@@ -33,6 +34,7 @@
     <%- link('validate', '/validate', 'Validate') %>
     <%- link('bulk-validate', '/validate/bulk', 'Bulk validate') %>
     <div class="app-nav-label">Messaging</div>
+    <%- link('inbox', '/inbox', 'Inbox') %>
     <%- link('messages', '/messages', 'Send message') %>
     <%- link('bulk', '/bulk', 'Bulk send') %>
     <div class="app-nav-label">Developers</div>

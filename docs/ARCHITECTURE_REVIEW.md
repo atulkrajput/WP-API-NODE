@@ -84,17 +84,17 @@ Things that apply regardless:
 
 **P1 — makes it a real shared service**
 
-- **Status callbacks to projects.** Per-key callback URL; forward each status
-  change as a signed (HMAC) POST so projects don't poll.
-- **Inbound messages.** The webhook only stores statuses today and ignores
-  incoming customer messages. Storing them enables: 24-hour window tracking (so
-  free text stops failing), STOP/opt-out handling, and a basic inbox.
+- ✅ **Status callbacks to projects** (shipped). Per-key callback URL, signed
+  `message.status` / `message.received` events, outbox with retries.
+- ✅ **Inbound messages** (shipped). Stored, routed to the right project, 24h
+  window tracking, STOP/START opt-out, Inbox with replies.
+- **Inbound media download.** Media messages store Meta's media id only; add a
+  proxy endpoint that fetches the file with the access token.
 - **Template sync.** Pull approved templates from the WABA
   (`GET /{WABA_ID}/message_templates`) into a dropdown + validate variable
   count before sending.
 - **Bulk via API.** `POST /api/v1/bulk` with a JSON recipient list, reusing the
   existing queue/worker.
-- **Opt-out list.** Global do-not-message table checked on every send.
 
 **P2 — scale**
 

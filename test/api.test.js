@@ -6,11 +6,15 @@ process.env.API_RATE_LIMIT_PER_MIN = '5';
 
 const request = require('supertest');
 
+jest.mock('../src/models/contact');
 jest.mock('../src/models/apiClient');
+jest.mock('../src/models/inboundMessage');
 jest.mock('../src/models/message');
 jest.mock('../src/services/whatsappService');
 
 const apiClientModel = require('../src/models/apiClient');
+const contactModel = require('../src/models/contact');
+const inboundMessageModel = require('../src/models/inboundMessage');
 const messageModel = require('../src/models/message');
 const whatsappService = require('../src/services/whatsappService');
 const { _windows } = require('../src/middleware/apiAuth');
@@ -130,6 +134,37 @@ describe('POST /api/v1/validate', () => {
     const res = await auth(request(app).post('/api/v1/validate')).send({ number: '2025550182', defaultCountry: 'US' });
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ valid: true, e164: '+12025550182', country: 'US' });
+  });
+});
+
+describe('GET /api/v1/contacts/:number', () => {
+  test('reports window + opt-out state', async () => {
+    contactModel.getState.mockResolvedValue({
+      e164: '+14155550123', name: 'Asha', optedOut: false, lastInboundAt: '2026-10-25 09:00:00',
+      sessionOpen: true, sessionExpiresAt: '2026-10-26 09:00:00',
+    });
+    const res = await auth(request(app).get('/api/v1/contacts/+14155550123'));
+    expect(res.status).toBe(200);
+    expect(res.body.contact).toMatchObject({ sessionOpen: true, canSendText: true, canSendTemplate: true });
+  });
+
+  test('invalid number → 400', async () => {
+    const res = await auth(request(app).get('/api/v1/contacts/123'));
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('GET /api/v1/inbound', () => {
+  test('returns only this project\'s replies after the cursor', async () => {
+    inboundMessageModel.listForClient.mockResolvedValue([
+      { id: 41, wamid: 'w1', from_e164: '+1', contact_name: 'A', msg_type: 'text', text_body: 'yes', received_at: 't' },
+      { id: 42, wamid: 'w2', from_e164: '+1', contact_name: 'A', msg_type: 'text', text_body: 'STOP', opt_action: 'opted_out', received_at: 't' },
+    ]);
+    const res = await auth(request(app).get('/api/v1/inbound?since_id=40'));
+    expect(res.status).toBe(200);
+    expect(inboundMessageModel.listForClient).toHaveBeenCalledWith(7, { sinceId: 40, limit: 50 });
+    expect(res.body.nextSinceId).toBe(42);
+    expect(res.body.messages[1]).toMatchObject({ text: 'STOP', optAction: 'opted_out' });
   });
 });
 

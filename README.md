@@ -107,7 +107,7 @@ Every project you own can send through this one verified WhatsApp number.
 Each project gets its own API key, its own usage count, and can only read its
 own messages.
 
-1. Run `npm run migrate` (adds the `api_clients` table, migration 002).
+1. Run `npm run migrate` (migrations 002 and 003: API keys, inbound messages, callbacks).
 2. Create a key: **Settings → API keys** in the UI, or
    `npm run apikey -- create "Shop backend"`. The key is shown once.
 3. Call the API with `Authorization: Bearer <key>`:
@@ -118,10 +118,39 @@ own messages.
 | `POST` | `/api/v1/validate` | Free format check: `{"number":"9876543210","defaultCountry":"IN"}`. |
 | `POST` | `/api/v1/messages` | Send. Template: `{"to":"+91…","template":{"name":"order_update","language":"en_US","variables":["Asha"]},"reference":"order-1"}`. Text (24h window only): `{"to":"+91…","type":"text","text":"Hi"}`. |
 | `GET` | `/api/v1/messages/:id` | Status (`accepted → sent → delivered → read`, or `failed` with Meta's error). |
+| `GET` | `/api/v1/contacts/:number` | 24h window + opt-out state: `canSendText`, `canSendTemplate`, `sessionExpiresAt`. |
+| `GET` | `/api/v1/inbound?since_id=0` | Customer replies routed to this project (pull alternative to callbacks). |
 
 Responses: `201` accepted, `400` validation error (Meta not called), `401` bad
-key, `429` rate limited (`API_RATE_LIMIT_PER_MIN`, default 120/min/key), `502`
+key, `409` blocked by policy (`recipient_opted_out` or `outside_session_window`), `429` rate limited (`API_RATE_LIMIT_PER_MIN`, default 120/min/key), `502`
 Meta rejected the send (error code + detail included).
+
+### Callbacks (push instead of poll)
+
+Open a project in **Settings → API keys** and set its callback URL. The app
+then POSTs signed JSON events:
+
+- `message.status` — a message this project sent changed status.
+- `message.received` — a customer replied. Replies are routed to the project
+  whose message they replied to, else the project that last messaged them.
+  `data.replyTo.reference` carries your original `reference`.
+- `ping` — the "Send test event" button.
+
+Each request has `X-WAHub-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>`.
+Reject if the timestamp is older than 5 minutes. Reply 2xx within 10s; anything
+else is retried after 30s, 2m, 10m, 1h, 6h, then marked failed (retry it from
+the UI). Delivery is at-least-once, so dedupe on the body's `id`.
+
+### Incoming messages, 24h window, opt-out
+
+- Every customer message is stored and shown in **Inbox**, where you can reply
+  with free text while the 24-hour window is open.
+- A customer message opens the window. Free text outside it is rejected with
+  `409 outside_session_window` (turn off with `ENFORCE_SESSION_WINDOW=false`).
+  The window is only known for messages received after this feature was deployed.
+- `STOP`, `UNSUBSCRIBE`, `STOP PROMOTIONS` (and similar) opt the contact out:
+  single, API and bulk sends to them are blocked. `START` opts back in. Admins
+  can override from the Inbox thread.
 
 See [`docs/ARCHITECTURE_REVIEW.md`](docs/ARCHITECTURE_REVIEW.md) for the number
 strategy and roadmap.

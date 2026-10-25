@@ -3,6 +3,7 @@
 const createApp = require('./app');
 const config = require('./config');
 const { startWorker, stopWorker } = require('./worker/worker');
+const callbackService = require('./services/callbackService');
 
 /**
  * Boot the HTTP server.
@@ -45,11 +46,18 @@ function start() {
     });
   }
 
+  // Project callback dispatcher (outbox → POST to each project's URL).
+  callbackService.startDispatcher().catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('Failed to start callback dispatcher:', err && err.message ? err.message : err);
+  });
+
   // Graceful shutdown.
   const shutdown = (signal) => {
     // eslint-disable-next-line no-console
     console.log(`\n${signal} received, shutting down...`);
     stopWorker();
+    callbackService.stopDispatcher();
     server.close(() => process.exit(0));
     // Force-exit if connections linger.
     setTimeout(() => process.exit(1), 10000).unref();

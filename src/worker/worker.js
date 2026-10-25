@@ -41,6 +41,7 @@ const defaultWhatsappService = require('../services/whatsappService');
 const defaultBulkJobModel = require('../models/bulkJob');
 const defaultBulkJobItemModel = require('../models/bulkJobItem');
 const defaultMessageModel = require('../models/message');
+const defaultContactModel = require('../models/contact');
 
 /** Current UTC time as a MySQL DATETIME string ("YYYY-MM-DD HH:MM:SS"). */
 function utcNow(now = Date.now()) {
@@ -226,6 +227,7 @@ function createWorker(deps = {}) {
   const bulkJob = deps.bulkJob || defaultBulkJobModel;
   const bulkJobItem = deps.bulkJobItem || defaultBulkJobItemModel;
   const message = deps.message || defaultMessageModel;
+  const contact = deps.contact || defaultContactModel;
   const delay = deps.delay || realDelay;
   const now = deps.now || Date.now;
   const logger = deps.logger || defaultLogger;
@@ -257,6 +259,23 @@ function createWorker(deps = {}) {
     try {
       const msgType = job.msg_type || 'template';
       const to = item.to_e164;
+
+      // Never message someone who sent STOP. Fail open on lookup errors.
+      let optedOut = false;
+      try {
+        optedOut = Boolean(await contact.isOptedOut(to));
+      } catch (e) {
+        optedOut = false;
+      }
+      if (optedOut) {
+        await bulkJobItem.markFailed(item.id, 'Recipient opted out (sent STOP)');
+        await bulkJob.updateCounters(job.id, {
+          failedCount: (Number(job.failed_count) || 0) + 1,
+        });
+        job.failed_count = (Number(job.failed_count) || 0) + 1;
+        logger.info('worker.item.opted_out', { jobId: job.id, itemId: item.id });
+        return 'failed';
+      }
 
       let result;
       if (msgType === 'text') {

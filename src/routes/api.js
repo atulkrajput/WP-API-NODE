@@ -10,6 +10,11 @@
  *   POST /api/v1/validate          → Tier A format check (free, no send)
  *   POST /api/v1/messages          → send a template or text message
  *   GET  /api/v1/messages/:id      → status of a message this key sent
+ *   GET  /api/v1/contacts/:number  → 24h window + opt-out state for a number
+ *   GET  /api/v1/inbound           → replies routed to this project (pull)
+ *
+ * Push: set a callback URL in Settings → API keys to receive signed
+ * `message.status` and `message.received` events instead of polling.
  */
 
 const express = require('express');
@@ -18,6 +23,8 @@ const config = require('../config');
 const phoneService = require('../services/phoneService');
 const messageService = require('../services/messageService');
 const messageModel = require('../models/message');
+const contactModel = require('../models/contact');
+const inboundMessageModel = require('../models/inboundMessage');
 const { requireApiKey } = require('../middleware/apiAuth');
 
 const router = express.Router();
@@ -91,6 +98,56 @@ router.get('/messages/:id', async (req, res, next) => {
     const row = await messageModel.getByIdForClient(id, req.apiClient.id);
     if (!row) return res.status(404).json({ ok: false, error: 'not_found' });
     return res.json({ ok: true, message: messageService.serialize(row) });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/contacts/:number', async (req, res, next) => {
+  try {
+    const r = phoneService.parse(String(req.params.number || ''), String(req.query.defaultCountry || '').trim() || undefined);
+    if (!r.valid) return res.status(400).json({ ok: false, error: 'invalid_number', reason: r.reason });
+    const s = await contactModel.getState(r.e164);
+    return res.json({
+      ok: true,
+      contact: {
+        e164: s.e164,
+        name: s.name,
+        optedOut: s.optedOut,
+        lastInboundAt: s.lastInboundAt,
+        sessionOpen: s.sessionOpen,
+        sessionExpiresAt: s.sessionExpiresAt,
+        canSendText: s.sessionOpen && !s.optedOut,
+        canSendTemplate: !s.optedOut,
+      },
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/inbound', async (req, res, next) => {
+  try {
+    const sinceId = Math.max(0, Number.parseInt(req.query.since_id, 10) || 0);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
+    const rows = await inboundMessageModel.listForClient(req.apiClient.id, { sinceId, limit });
+    const messages = rows.map((m) => ({
+      id: m.id,
+      wamid: m.wamid,
+      from: m.from_e164,
+      name: m.contact_name,
+      type: m.msg_type,
+      text: m.text_body,
+      mediaId: m.media_id,
+      replyToWamid: m.context_wamid,
+      optAction: m.opt_action,
+      receivedAt: m.received_at,
+    }));
+    return res.json({
+      ok: true,
+      messages,
+      nextSinceId: messages.length ? messages[messages.length - 1].id : sinceId,
+    });
   } catch (err) {
     return next(err);
   }
