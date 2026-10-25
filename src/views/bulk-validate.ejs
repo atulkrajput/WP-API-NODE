@@ -7,7 +7,7 @@
 <body>
   <%- include('partials/navbar', { username: username, active: 'bulk-validate' }) %>
 
-  <main class="container py-4">
+  <main class="app-main">
     <%- include('partials/flash') %>
     <h1 class="h3 mb-3">Bulk number validation (CSV)</h1>
 
@@ -107,7 +107,7 @@
     </div>
   </main>
 
-  <script>
+  <script nonce="<%= cspNonce %>">
     (function () {
       var form = document.getElementById('bulk-form');
       var reportBox = document.getElementById('report-box');

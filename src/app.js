@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('path');
+const crypto = require('crypto');
 
 const express = require('express');
 const helmet = require('helmet');
@@ -14,6 +15,7 @@ const { csrfProtection } = require('./middleware/csrf');
 const { flash } = require('./middleware/flash');
 const { rawBodyParser } = require('./middleware/rawBody');
 const webhookController = require('./controllers/webhook');
+const apiRoutes = require('./routes/api');
 
 /**
  * Build and configure the Express application.
@@ -33,8 +35,35 @@ function createApp() {
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
 
+  // Per-request CSP nonce. Views put it on every inline <script> so the
+  // browser runs them; without it the default CSP silently blocks all page JS.
+  app.use((req, res, next) => {
+    res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+    next();
+  });
+
   // Security headers.
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          'script-src': [
+            "'self'",
+            'https://cdn.jsdelivr.net',
+            (req, res) => `'nonce-${res.locals.cspNonce}'`,
+          ],
+          'style-src': ["'self'", 'https://cdn.jsdelivr.net', 'https://fonts.googleapis.com', "'unsafe-inline'"],
+          'font-src': ["'self'", 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net', 'data:'],
+        },
+      },
+    })
+  );
+
+  // Static assets (theme CSS, logo).
+  app.use(
+    '/static',
+    express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProd ? '7d' : 0 })
+  );
 
   // Request logging (quiet during tests).
   if (config.env !== 'test') {
@@ -51,6 +80,10 @@ function createApp() {
   // POST /webhook → signature-verified status callbacks.
   app.get('/webhook', webhookController.getVerify);
   app.post('/webhook', rawBodyParser(), webhookController.postCallback);
+
+  // --- Public REST API v1 (API-key auth, for other projects) ---
+  // Stateless: no session, no CSRF. Mounted before the session middleware.
+  app.use('/api/v1', express.json({ limit: '100kb' }), apiRoutes, apiRoutes.apiErrorHandler);
 
   // Body / cookie parsing.
   app.use(express.json());

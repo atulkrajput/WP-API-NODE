@@ -26,6 +26,7 @@ const messageController = require('../controllers/message');
 const bulkController = require('../controllers/bulk');
 const dashboardController = require('../controllers/dashboard');
 const privacyController = require('../controllers/privacy');
+const apiKeysController = require('../controllers/apiKeys');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -194,5 +195,10 @@ router.get('/bulk/:id/progress', requireAuth, bulkController.getJobProgress);
 // body field (or x-csrf-token header) — no multer-ordering workaround needed
 // unlike POST /bulk and POST /validate/bulk. requireAuth guards access.
 router.post('/bulk/:id/retry-failed', requireAuth, bulkController.postRetryFailed);
+
+// --- Settings: API keys for other projects (protected) ---
+router.get('/settings/api-keys', requireAuth, apiKeysController.getPage);
+router.post('/settings/api-keys', requireAuth, apiKeysController.postCreate);
+router.post('/settings/api-keys/:id/revoke', requireAuth, apiKeysController.postRevoke);
 
 module.exports = router;

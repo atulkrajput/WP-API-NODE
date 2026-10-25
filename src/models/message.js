@@ -61,7 +61,29 @@ async function insert(data, db = pool) {
     deliveredAt = null,
     readAt = null,
     failedAt = null,
+    apiClientId = null,
+    clientRef = null,
   } = data;
+
+  // API-originated sends also record the calling project. Only touch these
+  // columns when set, so the admin UI keeps working before migration 002.
+  if (apiClientId) {
+    const [r] = await db.execute(
+      `INSERT INTO messages
+         (wamid, to_e164, direction, msg_type, template_name, language,
+          body_preview, status, error_code, error_title, error_detail,
+          bulk_job_item_id, api_client_id, client_ref,
+          accepted_at, sent_at, delivered_at, read_at, failed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        wamid, toE164, direction, msgType, templateName, language,
+        bodyPreview, status, errorCode, errorTitle, errorDetail,
+        bulkJobItemId, apiClientId, clientRef,
+        acceptedAt, sentAt, deliveredAt, readAt, failedAt,
+      ]
+    );
+    return r.insertId;
+  }
 
   const [result] = await db.execute(
     `INSERT INTO messages
@@ -281,8 +303,42 @@ async function recent(opts = {}, db = pool) {
   return rows;
 }
 
+/**
+ * Fetch a message only if it belongs to the given API client (tenant guard).
+ */
+async function getByIdForClient(id, apiClientId, db = pool) {
+  const [rows] = await db.execute(
+    `SELECT id, wamid, to_e164, msg_type, template_name, client_ref, status,
+            error_code, error_title, error_detail, accepted_at, sent_at,
+            delivered_at, read_at, failed_at, created_at
+       FROM messages
+      WHERE id = ? AND api_client_id = ?
+      LIMIT 1`,
+    [id, apiClientId]
+  );
+  return rows.length ? rows[0] : null;
+}
+
+/**
+ * Message counts by status over the last N days (dashboard KPIs).
+ * @returns {Promise<Array<{status:string, c:number}>>}
+ */
+async function statusCounts(opts = {}, db = pool) {
+  const days = Number.isFinite(opts.days) ? opts.days : 30;
+  const [rows] = await db.query(
+    `SELECT status, COUNT(*) AS c
+       FROM messages
+      WHERE created_at >= UTC_TIMESTAMP() - INTERVAL ? DAY
+      GROUP BY status`,
+    [days]
+  );
+  return rows;
+}
+
 module.exports = {
   insert,
+  getByIdForClient,
+  statusCounts,
   getById,
   findByWamid,
   advanceStatus,

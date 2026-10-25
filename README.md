@@ -101,6 +101,31 @@ on BullMQ + Redis instead (e.g. when you have provisioned Redis):
    worker instead of the node-cron poller. If `bullmq`/`ioredis` or `REDIS_URL`
    are missing, the app fails fast with a clear, actionable error.
 
+## Using it from other projects (REST API v1)
+
+Every project you own can send through this one verified WhatsApp number.
+Each project gets its own API key, its own usage count, and can only read its
+own messages.
+
+1. Run `npm run migrate` (adds the `api_clients` table, migration 002).
+2. Create a key: **Settings → API keys** in the UI, or
+   `npm run apikey -- create "Shop backend"`. The key is shown once.
+3. Call the API with `Authorization: Bearer <key>`:
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/v1/me` | Which project this key belongs to; whether the sender is configured. |
+| `POST` | `/api/v1/validate` | Free format check: `{"number":"9876543210","defaultCountry":"IN"}`. |
+| `POST` | `/api/v1/messages` | Send. Template: `{"to":"+91…","template":{"name":"order_update","language":"en_US","variables":["Asha"]},"reference":"order-1"}`. Text (24h window only): `{"to":"+91…","type":"text","text":"Hi"}`. |
+| `GET` | `/api/v1/messages/:id` | Status (`accepted → sent → delivered → read`, or `failed` with Meta's error). |
+
+Responses: `201` accepted, `400` validation error (Meta not called), `401` bad
+key, `429` rate limited (`API_RATE_LIMIT_PER_MIN`, default 120/min/key), `502`
+Meta rejected the send (error code + detail included).
+
+See [`docs/ARCHITECTURE_REVIEW.md`](docs/ARCHITECTURE_REVIEW.md) for the number
+strategy and roadmap.
+
 ## Configuring the Meta webhook
 
 The webhook delivers per-message status updates (sent / delivered / read /
@@ -178,7 +203,8 @@ src/
   config/index.js        # env -> typed config (secrets read here only)
   db/                    # mysql2 pool, migration runner, migrations, seed
   middleware/            # auth, csrf, rawBody (webhook), flash, error handling
-  services/              # phoneService, whatsappService, queueService
+  routes/api.js          # public REST API v1 (API-key auth, per-key rate limit)
+  services/              # phoneService, whatsappService, messageService, queueService
   worker/worker.js       # node-cron tick + startup reconciler (DB queue)
   controllers/           # auth, validation, message, bulk, webhook
   models/                # data access over mysql2/promise

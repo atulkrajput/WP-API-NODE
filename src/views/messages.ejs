@@ -7,7 +7,7 @@
 <body>
   <%- include('partials/navbar', { username: username, active: 'messages' }) %>
 
-  <main class="container py-4">
+  <main class="app-main">
     <%- include('partials/flash') %>
     <h1 class="h3 mb-3">Send a message</h1>
 
@@ -121,7 +121,7 @@
     </div>
   </main>
 
-  <script>
+  <script nonce="<%= cspNonce %>">
     (function () {
       var form = document.getElementById('send-form');
       var templateFields = document.getElementById('template-fields');

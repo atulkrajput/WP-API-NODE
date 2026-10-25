@@ -7,7 +7,7 @@
 <body>
   <%- include('partials/navbar', { username: username, active: 'validate' }) %>
 
-  <main class="container py-4">
+  <main class="app-main">
     <%- include('partials/flash') %>
     <h1 class="h3 mb-3">Validate a number</h1>
 
@@ -102,7 +102,7 @@
     </div>
   </main>
 
-  <script>
+  <script nonce="<%= cspNonce %>">
     (function () {
       var form = document.getElementById('validate-form');
       var resultBox = document.getElementById('result');
