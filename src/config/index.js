@@ -44,6 +44,8 @@ const config = {
     secret: process.env.SESSION_SECRET || 'change-me-in-env',
     // secure cookies once we are behind HTTPS (Hostinger prod)
     secure: bool(process.env.SESSION_COOKIE_SECURE, NODE_ENV === 'production'),
+    // 'mysql' keeps logins across restarts; 'memory' is for local dev/tests.
+    store: process.env.SESSION_STORE || (NODE_ENV === 'production' ? 'mysql' : 'memory'),
   },
 
   db: {
