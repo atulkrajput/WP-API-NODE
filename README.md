@@ -41,6 +41,7 @@ committed — `.env` is gitignored; only `.env.example` is tracked.
    | `PORT`, `NODE_ENV` | App port and environment (`development` / `production`). |
    | `SESSION_SECRET` | Long random string for signing session cookies. |
    | `SESSION_COOKIE_SECURE` | Force secure cookies. Auto-on when `NODE_ENV=production`. |
+   | `SESSION_STORE` | `mysql` (default in production: logins survive restarts; the `sessions` table is created automatically) or `memory` (default in development). |
    | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | MySQL connection. |
    | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Seed the single admin (used by `npm run seed` only). |
    | `GRAPH_VERSION`, `WHATSAPP_TOKEN`, `PHONE_NUMBER_ID`, `WABA_ID` | Meta Cloud API. |

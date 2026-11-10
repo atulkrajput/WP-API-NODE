@@ -24,6 +24,8 @@ const apiRoutes = require('./routes/api');
  * dashboard routes on top of the baseline scaffold. Later tasks add validation,
  * messaging, bulk, and webhook routes to `src/routes/index.js`.
  */
+const SESSION_TTL_MS = 1000 * 60 * 60 * 8; // 8 hours
+
 function createApp() {
   const app = express();
 
@@ -93,9 +95,23 @@ function createApp() {
   // Server-side sessions (Requirement 1.2). httpOnly + secure cookies; the
   // secure flag follows config so local dev over HTTP still works while prod
   // (behind HTTPS on Hostinger) gets secure cookies.
+  let store;
+  if (config.session.store === 'mysql') {
+    // eslint-disable-next-line global-require
+    const { MySQLSessionStore } = require('./db/sessionStore');
+    store = new MySQLSessionStore({
+      // eslint-disable-next-line global-require
+      pool: require('./db/pool'),
+      ttlMs: SESSION_TTL_MS,
+      // eslint-disable-next-line no-console
+      logger: (msg) => console.warn(`[session] ${msg}`),
+    });
+  }
+
   app.use(
     session({
       name: 'connect.sid',
+      store,
       secret: config.session.secret,
       resave: false,
       saveUninitialized: false,
@@ -103,7 +119,7 @@ function createApp() {
         httpOnly: true,
         secure: config.session.secure,
         sameSite: 'lax',
-        maxAge: 1000 * 60 * 60 * 8, // 8 hours
+        maxAge: SESSION_TTL_MS,
       },
     })
   );
