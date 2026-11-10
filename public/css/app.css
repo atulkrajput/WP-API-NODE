@@ -233,6 +233,10 @@ a:hover > .card { border-color: var(--brand); transform: translateY(-1px); }
 .btn-success { background: var(--brand); border-color: var(--brand); }
 .btn-success:hover, .btn-success:focus { background: var(--brand-600); border-color: var(--brand-600); }
 .btn-outline-success { color: var(--brand); border-color: var(--brand); }
+.btn-primary { background: var(--brand); border-color: var(--brand); }
+.btn-primary:hover, .btn-primary:focus { background: var(--brand-600); border-color: var(--brand-600); }
+.btn-outline-primary { color: var(--brand); border-color: #cfd8d4; background: var(--surface); }
+.btn-outline-primary:hover { background: var(--brand-50); color: var(--brand-600); border-color: var(--brand); }
 .btn-outline-success:hover, .btn-check:checked + .btn-outline-success { background: var(--brand); border-color: var(--brand); color: #fff; }
 
 /* --- Alerts -------------------------------------------------------------- */
