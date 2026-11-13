@@ -12,6 +12,18 @@ function getPrivacyPolicy(req, res) {
   });
 }
 
+/** Public Terms of Service (Meta app settings: Terms of Service URL). */
+function getTerms(req, res) {
+  return res.render('terms');
+}
+
+/** Public data deletion instructions (Meta app settings: User data deletion). */
+function getDataDeletion(req, res) {
+  return res.render('data-deletion');
+}
+
 module.exports = {
   getPrivacyPolicy,
+  getTerms,
+  getDataDeletion,
 };
