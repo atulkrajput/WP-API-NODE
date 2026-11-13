@@ -50,7 +50,7 @@ describe('public legal pages (Meta app settings URLs)', () => {
   test('data deletion page explains STOP, how to request, and the 30-day timeline', async () => {
     const res = await request(app).get('/data-deletion');
     expect(res.text).toMatch(/Reply <strong>STOP<\/strong>/);
-    expect(res.text).toContain('letsbuild@dneconsultants.com');
+    expect(res.text).toContain('hello@dneco.io');
     expect(res.text).toMatch(/30 days/);
   });
 
