@@ -73,7 +73,7 @@ Things that apply regardless:
    `WABA_ID`, `APP_SECRET`, `WEBHOOK_VERIFY_TOKEN`, `SESSION_SECRET`,
    `NODE_ENV=production`.
 4. `npm run migrate` (applies migration 002).
-5. In Meta → WhatsApp → Configuration: callback `https://YOUR_DOMAIN/webhook`,
+5. In Meta → WhatsApp → Configuration: callback `https://wpapp.dneco.io/webhook`,
    your verify token, subscribe to **messages**.
 6. Dashboard → go-live checklist should be all green.
 7. Settings → API keys → create one key per project.

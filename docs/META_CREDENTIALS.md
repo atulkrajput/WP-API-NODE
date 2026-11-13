@@ -1,5 +1,19 @@
 # Getting Your Meta WhatsApp Cloud API Credentials
 
+> **Production domain:** `wpapp.dneco.io`
+>
+> | What Meta asks for | Value |
+> | --- | --- |
+> | App Domains | `wpapp.dneco.io` |
+> | Site URL (Website platform) | `https://wpapp.dneco.io` |
+> | Privacy Policy URL | `https://wpapp.dneco.io/privacy-policy` |
+> | Terms of Service URL | `https://wpapp.dneco.io/terms` *(page not built yet)* |
+> | Data deletion instructions URL | `https://wpapp.dneco.io/data-deletion` *(page not built yet)* |
+> | Webhook **Callback URL** | `https://wpapp.dneco.io/webhook` |
+> | Webhook **Verify token** | same value as `WEBHOOK_VERIFY_TOKEN` |
+>
+> Changing domains? Follow [Domain change, verification & App Review](#domain-change-verification--app-review) at the bottom.
+
 This app talks to the **WhatsApp Cloud API** (Meta Graph API). To send messages,
 run the deliverability probe (`/validate`), and receive status webhooks, you must
 provide five values in your environment (`.env.production` or the Hostinger panel):
@@ -92,7 +106,7 @@ places:
 1. Put your chosen string in `WEBHOOK_VERIFY_TOKEN`.
 2. When you configure the webhook in Meta (**WhatsApp → Configuration → Edit**),
    enter:
-   - **Callback URL:** `https://YOUR_DOMAIN/webhook`
+   - **Callback URL:** `https://wpapp.dneco.io/webhook`
    - **Verify token:** the same string.
    Then subscribe to the **messages** field.
 
@@ -111,7 +125,7 @@ behind your HTTPS domain, enter this URL in **App settings → Basic → Privacy
 Policy URL**:
 
 ```text
-https://YOUR_DOMAIN/privacy-policy
+https://wpapp.dneco.io/privacy-policy
 ```
 
 The page is intentionally public and does not require an admin login. Review the
@@ -121,7 +135,7 @@ email) before submitting the URL to Meta.
 The WhatsApp webhook uses a separate URL:
 
 ```text
-https://YOUR_DOMAIN/webhook
+https://wpapp.dneco.io/webhook
 ```
 
 ## Step 7 — Put the values in your environment
@@ -142,7 +156,7 @@ them.
 
 ---
 
-## Step 7 — Before your first successful send
+## Step 8 — Before your first successful send
 
 Even with correct credentials, Meta enforces a few rules:
 
@@ -170,6 +184,73 @@ You want `phoneNumberId` to be your real ID and every `*Set` flag to be `true`.
 Then retry the deliverability check on `/validate`.
 
 ---
+
+## Domain change, verification & App Review
+
+Run these in order. Phases 1–4 are required; Phase 5 only if Meta asks for
+**Advanced Access** (needed when serving *other* businesses' WABAs — not when
+sending only from your own number).
+
+### Phase 1 — Point the Meta app at the new domain
+1. **App settings → Basic:** update App Domains, Privacy Policy URL, Terms URL,
+   Data deletion instructions URL (values in the table at the top), app icon
+   (1024×1024), category, contact email. Fix the **Website → Site URL**. Remove
+   the old domain everywhere. **Save.**
+2. **WhatsApp → Configuration → Webhook → Edit:** Callback URL
+   `https://wpapp.dneco.io/webhook`, verify token = `WEBHOOK_VERIFY_TOKEN`.
+   **Verify and save.** Subscribe to the **messages** field.
+3. Confirm **App secret** equals `APP_SECRET` on the server. Restart the app
+   after any env change.
+
+### Phase 2 — Verify the domain in Business Manager
+Business settings → **Brand safety → Domains → Add** `dneco.io` → choose **DNS
+TXT record** → add it at the DNS provider → **Verify**. Remove the old domain.
+
+### Phase 3 — Business Verification (1–5 business days)
+Business settings → **Security Center → Start verification**.
+- Legal name and address must match the registration documents exactly.
+- The website must show the same legal name (top rejection reason).
+- Use an `@dneco.io` email so domain-email verification works.
+- Upload a certificate of incorporation, GST certificate or utility bill.
+
+### Phase 4 — WhatsApp number & display name
+WhatsApp Manager → **Phone numbers**:
+1. The number must not be active on the WhatsApp / WhatsApp Business app.
+   Verify it by OTP.
+2. **Display name** must clearly match the brand on the website (approval
+   takes 1–2 days). Generic names get rejected.
+3. Set the two-step **PIN**, and add a **payment method** (Settings → Payment
+   methods).
+4. If the status shows *Pending*, register it:
+   `POST /{PHONE_NUMBER_ID}/register` with `{"messaging_product":"whatsapp","pin":"123456"}`.
+5. Generate a permanent System User token (Step 3, Option B).
+6. **Smoke test:** send `hello_world` from `/validate`, then confirm the status
+   moves sent → delivered → read. That proves the webhook works.
+
+### Phase 5 — App Review screencast (Advanced Access only)
+**Before submitting:** business verified, Privacy/Terms/data-deletion URLs return
+200, icon set, app in **Live** mode.
+
+**Video:** MP4, 1080p, 2–4 min, English UI, captions or a voice-over.
+
+**`whatsapp_business_messaging` shot list:**
+1. Log in at `https://wpapp.dneco.io`.
+2. Send an approved template to a test number.
+3. Show it **arriving on a real phone** (mandatory).
+4. Reply from the phone and show it appearing in `/inbox`.
+5. Send a free-text reply from the inbox and show it arriving on the phone.
+6. Show the status updating to delivered/read.
+
+**`whatsapp_business_management`:** only request this permission if the app
+uses management endpoints, and show them in the video. Unused permissions mean
+rejection.
+
+**Form:**
+- **Use description:** 2–3 plain sentences.
+- **Reviewer steps:** the login URL plus a test admin username and password.
+- Upload the MP4.
+
+If rejected, fix only the stated reason and resubmit.
 
 ## Reference
 

@@ -161,7 +161,7 @@ strategy and roadmap.
 The webhook delivers per-message status updates (sent / delivered / read /
 failed). Meta requires an HTTPS endpoint.
 
-- **Callback URL:** `https://YOUR_DOMAIN/webhook`
+- **Callback URL:** `https://wpapp.dneco.io/webhook`
 - **Verify token:** the value you set in `WEBHOOK_VERIFY_TOKEN`.
 
 Flow:
@@ -208,7 +208,7 @@ Redis, so the default `QUEUE_DRIVER=db` is used (worker runs in-process).
    ```
 
 6. **Ensure HTTPS is enabled** for the domain, then register
-   `https://YOUR_DOMAIN/webhook` and the verify token in the Meta app and
+   `https://wpapp.dneco.io/webhook` and the verify token in the Meta app and
    subscribe to the **messages** field.
 7. **Keep `QUEUE_DRIVER=db`** unless you have provisioned Redis; the bulk worker
    runs inside the same Node process and survives restarts because job state
