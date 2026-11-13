@@ -4,12 +4,7 @@
   <%- include('partials/head', { title: 'Privacy Policy — WhatsApp Messaging' }) %>
 </head>
 <body class="bg-light">
-  <main class="container py-5">
-    <article class="bg-white rounded shadow-sm p-4 p-md-5 mx-auto" style="max-width: 900px;">
-      <header class="mb-4">
-        <h1>Privacy Policy</h1>
-        <p class="text-muted mb-0">WhatsApp Messaging</p>
-      </header>
+  <%- include('partials/legal-top', { page: 'privacy', heading: 'Privacy Policy', updated: '13 November 2026' }) %>
 
       <p>
         This Privacy Policy explains how <strong>DNE Technology Consultants INC.</strong>
@@ -55,17 +50,13 @@
       <h2 class="h4 mt-4">Your requests</h2>
       <p>
         To ask about, access, correct, or delete information processed through
-        the Service, contact us using the details below. We may need to verify
-        your request before completing it and may retain information where the
-        law requires or permits us to do so.
+        the Service, contact us using the details below. To stop receiving
+        messages, reply <strong>STOP</strong> to any message from us. For how to
+        have your data deleted, see our <a href="/data-deletion">Data Deletion</a>
+        page. We may need to verify your request before completing it and may
+        retain information where the law requires or permits us to do so.
       </p>
 
-      <h2 class="h4 mt-4">Contact</h2>
-      <p class="mb-0">
-        <strong>Atul Kumar</strong><br />
-        Email: <a href="mailto:letsbuild@dneconsultants.com">letsbuild@dneconsultants.com</a>
-      </p>
-    </article>
-  </main>
+  <%- include('partials/legal-bottom') %>
 </body>
 </html>

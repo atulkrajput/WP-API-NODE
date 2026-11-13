@@ -99,6 +99,8 @@ function handleCsvUpload(req, res, next) {
 // outside the authenticated surface so Meta and unauthenticated visitors can
 // load it without a session or CSRF token.
 router.get('/privacy-policy', privacyController.getPrivacyPolicy);
+router.get('/terms', privacyController.getTerms);
+router.get('/data-deletion', privacyController.getDataDeletion);
 
 // --- Auth (public) ---
 router.get('/login', authController.getLogin);
@@ -212,5 +214,6 @@ router.get('/inbox', requireAuth, inboxController.getInbox);
 router.get('/inbox/:e164', requireAuth, inboxController.getThread);
 router.post('/inbox/:e164/reply', requireAuth, inboxController.postReply);
 router.post('/inbox/:e164/opt-out', requireAuth, inboxController.postOptOut);
+router.post('/inbox/:e164/delete-data', requireAuth, inboxController.postDeleteData);
 
 module.exports = router;

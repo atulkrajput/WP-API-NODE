@@ -292,3 +292,15 @@ code, .font-monospace { font-size: 0.85em; }
 .bubble-body { white-space: pre-wrap; word-break: break-word; }
 .bubble-type { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 .bubble-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; text-align: right; }
+
+/* --- Public legal pages ------------------------------------------------- */
+
+.legal-nav { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+.legal-nav a { padding: 6px 12px; border-radius: 999px; color: var(--ink-2); text-decoration: none; font-weight: 550; font-size: 0.875rem; }
+.legal-nav a:hover { background: var(--brand-50); color: var(--brand-600); }
+.legal-nav a.active { background: var(--brand); color: #fff; }
+.legal h2 { margin-top: 1.75rem !important; }
+.legal li { margin-bottom: 0.3rem; }
+.danger-zone { border-color: #fecdd3; }
+.danger-zone summary { cursor: pointer; color: #be123c; list-style: none; }
+.danger-zone summary::-webkit-details-marker { display: none; }

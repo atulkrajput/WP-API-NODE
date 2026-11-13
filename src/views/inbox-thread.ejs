@@ -61,6 +61,23 @@
         <% } %>
       </div>
     </div>
+    <details class="card mt-4 danger-zone">
+      <summary class="card-body py-3 fw-semibold">Delete this person's data</summary>
+      <div class="card-body pt-0">
+        <p class="small text-muted mb-2">
+          For data deletion requests. Permanently deletes every message to and from
+          <strong><%= e164 %></strong>, their validation results, delivery events and contact
+          record, and anonymizes their bulk-send rows. If they opted out, only the opt-out
+          record is kept so they are never messaged again. This cannot be undone.
+        </p>
+        <form action="<%= threadUrl %>/delete-data" method="post" class="d-flex gap-2 flex-wrap">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="text" name="confirm" class="form-control" style="max-width: 260px;"
+                 placeholder="Type the number to confirm" autocomplete="off" required />
+          <button type="submit" class="btn btn-outline-danger">Delete permanently</button>
+        </form>
+      </div>
+    </details>
   </main>
   <script nonce="<%= cspNonce %>">
     (function () {

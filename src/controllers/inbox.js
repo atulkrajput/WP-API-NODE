@@ -9,6 +9,7 @@ const phoneService = require('../services/phoneService');
 const messageService = require('../services/messageService');
 const contactModel = require('../models/contact');
 const inboundMessageModel = require('../models/inboundMessage');
+const dataDeletionModel = require('../models/dataDeletion');
 
 function parseE164(req) {
   const r = phoneService.parse(String(req.params.e164 || ''));
@@ -92,4 +93,32 @@ async function postOptOut(req, res, next) {
   }
 }
 
-module.exports = { getInbox, getThread, postReply, postOptOut };
+/**
+ * POST /inbox/:e164/delete-data — erase everything stored about a number
+ * (data deletion requests). The admin must type the number to confirm.
+ */
+async function postDeleteData(req, res, next) {
+  try {
+    const e164 = parseE164(req);
+    if (!e164) return res.redirect('/inbox');
+    const typed = phoneService.parse(String((req.body && req.body.confirm) || ''));
+    if (!typed.valid || typed.e164 !== e164) {
+      req.flash('warning', 'Nothing deleted: type the phone number exactly to confirm.');
+      return res.redirect(threadUrl(e164));
+    }
+    const r = await dataDeletionModel.deleteNumberData(e164);
+    // Audit line without the full number.
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ ts: new Date().toISOString(), event: 'data_deletion', number: `***${e164.slice(-4)}`, by: req.session.username, ...r }));
+    const kept = r.contact === 'kept_opt_out' ? ' The opt-out record was kept so this number is never messaged again.' : '';
+    req.flash(
+      'success',
+      `Deleted data for ${e164}: ${r.messages} sent, ${r.inbound} received, ${r.validations} validations, ${r.webhookEvents + r.callbacks} delivery events; ${r.bulkItems} bulk rows anonymized.${kept}`
+    );
+    return res.redirect('/inbox');
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { getInbox, getThread, postReply, postOptOut, postDeleteData };
